@@ -60,4 +60,10 @@ defmodule FrontierWeb.PageControllerTest do
     refute html =~ "fonts.gstatic.com"
     refute html =~ "cdn.jsdelivr"
   end
+
+  test "the page ships no JavaScript", %{conn: conn} do
+    html = html_response(conn, 200)
+
+    refute html =~ "<script"
+  end
 end

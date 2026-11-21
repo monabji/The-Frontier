@@ -6,15 +6,14 @@ defmodule FrontierWeb.PageController do
 
   def home(conn, _params) do
     date = Dateline.edition_date()
-    dateline = Dateline.format(date)
-    edition = DemoEdition.current()
 
     conn
-    |> assign(:page_title, "The Frontier — #{dateline}")
+    |> assign(:page_title, "The Frontier — #{Dateline.format(date)}")
     |> assign(
       :page_description,
-      "The day in AI and technology, edited to be read in ten minutes. Edition of #{dateline}."
+      "The day in AI and technology, edited to be read in ten minutes. " <>
+        "Edition of #{Dateline.format(date)}."
     )
-    |> render(:home, date: date, dateline: dateline, edition: edition)
+    |> render(:home, date: date, edition: DemoEdition.current())
   end
 end

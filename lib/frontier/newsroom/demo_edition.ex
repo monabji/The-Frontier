@@ -46,8 +46,7 @@ defmodule Frontier.Newsroom.DemoEdition do
           text:
             "Today we are releasing Inkling 2 Mini, a fast, powerful model that’s small " <>
               "enough to run on your laptop.",
-          attribution: "Quoted verbatim",
-          url: "https://thinkingmachines.ai/news/inkling-2-mini/"
+          attribution: "Quoted verbatim"
         }
       }
     }

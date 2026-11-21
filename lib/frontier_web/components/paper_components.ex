@@ -12,7 +12,6 @@ defmodule FrontierWeb.PaperComponents do
   """
   attr :date, Date, required: true, doc: "the edition date, in IST"
   attr :edition, :map, required: true, doc: "the edition being printed"
-  attr :dateline, :string, required: true, doc: "the date as the paper prints it"
 
   def masthead(assigns) do
     ~H"""
@@ -27,7 +26,7 @@ defmodule FrontierWeb.PaperComponents do
       <p class="masthead__motto">All the day’s AI and technology, in ten minutes.</p>
 
       <p class="dateband">
-        <time datetime={Date.to_iso8601(@date)}>{@dateline}</time>
+        <time datetime={Date.to_iso8601(@date)}>{Frontier.Newsroom.Dateline.format(@date)}</time>
       </p>
     </header>
     """
@@ -53,7 +52,6 @@ defmodule FrontierWeb.PaperComponents do
   source quote the summary is grounded on.
   """
   attr :story, :map, required: true
-  attr :edition, :map, required: true
 
   def lead_story(assigns) do
     ~H"""
