@@ -35,6 +35,19 @@ Load the skill at the start of the matching work, with the skill tool. These are
 
 When a phase spans several of these, load each as its part begins — `matt-tdd` for the logic, `code-review` for the merge.
 
+## Subagents
+
+Delegate independent work without asking. The phase's core implementation stays with the main agent.
+
+| Work | Model |
+|---|---|
+| Exploration, research, well-scoped independent slices, a first-pass review | `opencode-go/glm-5.3-flash` (GLM 5.3 Flash) |
+| The workhorse when a brief needs more reasoning, or as the fallback | `opencode-go/deepseek-v4.1-flash` (DeepSeek V4.1 Flash) |
+
+Invoke the native `subagent` tool with `model: "opencode-go/glm-5.3-flash"`. Reach for `delegate_task` for a separate worktree, user-requested settings, or another provider: `target: { providerInstanceId: "opencode", model: "opencode-go/glm-5.3-flash" }`. Look IDs up in `orchestrator_capabilities` or `opencode.models`; the catalog is the source of truth.
+
+Fan out when two or more slices are independent (the HN and RSS adapters at once), when a fact needs a source trail, or when a phase branch wants a fresh-context review. Each child gets a self-contained brief: the phase and issue, its acceptance criteria, the files it owns, and the constraint that it leaves other slices alone. Children return findings; the main agent owns PR watches and product decisions.
+
 ## Non-negotiables
 
 - Every printed story has a verified source quote and a resolving link. A failed check drops the story; it never prints with a guess.
