@@ -41,10 +41,10 @@ Expensive to change after the fact because other things hang off them: the editi
 **Build:** mise toolchain, `mix phx.new` with SQLite, Oban configured, base layout, Newsreader + chosen display face, masthead/date, the lead story component, mobile single column. GitHub Actions: format, compile with warnings-as-errors, test.
 
 **Acceptance:**
-- [ ] `mix phx.server` serves the page; `mix test` and CI are green
-- [ ] the page reads as a newspaper at 390px, not as a web app
-- [ ] the display typeface is chosen and set in one place
-- [ ] no secrets or generated files committed
+- [x] `mix phx.server` serves the page; `mix test` and CI are green
+- [x] the page reads as a newspaper at 390px, not as a web app
+- [x] the display typeface is chosen and set in one place
+- [x] no secrets or generated files committed
 
 **Review gate:** the look. This is the cheapest moment to change the paper's face — do it before anything is generated.
 
