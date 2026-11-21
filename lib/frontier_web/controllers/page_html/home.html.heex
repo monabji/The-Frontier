@@ -1,10 +1,13 @@
 <div class="sheet">
-  <PaperComponents.masthead date={@date} edition={@edition} />
+  <PaperComponents.masthead date={@date} />
 
   <main class="page">
-    <PaperComponents.section_band section={@edition.section} kicker={@edition.kicker} />
-    <PaperComponents.lead_story story={@edition.story} />
+    <PaperComponents.section_band
+      section="Front Page"
+      kicker={"Hacker News · #{length(@items)} stories"}
+    />
+    <PaperComponents.front_page items={@items} />
   </main>
 
-  <PaperComponents.colophon edition={@edition} />
+  <PaperComponents.colophon />
 </div>

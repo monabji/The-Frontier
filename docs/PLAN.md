@@ -36,7 +36,7 @@ See `docs/adr/` for the decisions worth remembering and `GLOSSARY.md` for vocabu
 | Table | Holds |
 |---|---|
 | `sources` | adapter key, enabled flag, config |
-| `raw_items` | fetched posts/articles/papers: external id, canonical URL, author, title, text, published/fetched times, hash |
+| `raw_items` | fetched posts/articles/papers: source + external id (the identity), URL, discussion URL, author, title, text, score, comment count, fetch-rank position, published/fetched times; canonical URL and content hash land in phase 2 |
 | `stories` | clustered events: cluster key, headline, dek, summary, source quote, primary URL, entities, section, position |
 | `story_items` | story ↔ raw item membership and role (primary, discourse, duplicate) |
 | `editions` | day, published time, status (draft/published/late/frozen), artifact path + hash, desk note, stats |

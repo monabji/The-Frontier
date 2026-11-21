@@ -31,6 +31,23 @@ defmodule Frontier.Newsroom.Dateline do
   end
 
   @doc """
+  The UTC instants that bound an IST edition day.
+
+  Stored rows carry UTC timestamps, but the paper's day is IST: the 22nd
+  begins at 18:30 UTC on the 21st. Half-open — `start <= t < close` — so two
+  consecutive days never both claim or both lose an item.
+  """
+  @spec day_bounds(Date.t()) :: {DateTime.t(), DateTime.t()}
+  def day_bounds(%Date{} = date) do
+    start =
+      date
+      |> DateTime.new!(~T[00:00:00], "Etc/UTC")
+      |> DateTime.add(-@ist_offset_seconds, :second)
+
+    {start, DateTime.add(start, 86_400, :second)}
+  end
+
+  @doc """
   Sets a date the way the paper prints it, without a zero-padded day.
 
       iex> Frontier.Newsroom.Dateline.format(~D[2026-11-22])

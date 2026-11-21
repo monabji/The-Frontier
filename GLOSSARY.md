@@ -45,3 +45,5 @@ Vocabulary used across the codebase, issues and docs. When a term here competes 
 - **Raw item** — a fetched post, article or paper before clustering.
 - **Cluster key** — the deterministic identity of a story: canonical URL, entity + time window, title similarity. Clustering is deterministic; there are no embeddings.
 - **Republish** — rebuilding and re-publishing an edition artifact from the recorded pool for the same day.
+- **Fetch** — one run of one source adapter: request, normalize, upsert, with a count of new and refreshed items and how long it took. A failed fetch is logged and reported, never fatal to the other sources.
+- **Source line** — the line under a front-page item that names the site it came from, the date it was posted, its score and its discussion. It is the item's provenance, not decoration.

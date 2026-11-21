@@ -191,8 +191,8 @@ a:hover {
   align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
-  max-width: var(--measure);
-  margin: 1.35rem auto 0;
+  max-width: none;
+  margin: 1.35rem 0 0;
   padding-bottom: 0.45rem;
   border-bottom: 1px solid var(--ink);
 }
@@ -202,113 +202,107 @@ a:hover {
   font-size: var(--text-xs);
 }
 
-/* ---------- the lead ---------- */
+/* ---------- the front page ---------- */
 
-.lead {
-  max-width: var(--measure);
-  margin: 0 auto;
-}
-
-.lead__headline {
-  margin: 1.15rem 0 0;
-  font-family: var(--font-display);
-  font-size: clamp(2.1rem, 7.2vw, 3.3rem);
-  font-weight: 600;
-  line-height: 1.02;
-  letter-spacing: -0.016em;
-  text-wrap: balance;
-}
-
-.lead__dek {
-  margin: 0.85rem 0 0;
-  font-size: clamp(1.15rem, 2.6vw, 1.3rem);
-  font-style: italic;
-  line-height: 1.42;
-  text-wrap: pretty;
-  color: var(--ink-soft);
-}
-
-.lead__desk {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  margin: 1.35rem 0 0;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--ink);
-}
-
-.lead__desk .smallcaps {
-  font-size: var(--text-xs);
-}
-
-.lead__desk-source {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.55rem;
-}
-
-.lead__body {
-  margin-top: 1.2rem;
-}
-
-.lead__paragraph {
-  margin: 0 0 0.95rem;
-  line-height: 1.55;
-  text-wrap: pretty;
-}
-
-.lead__paragraph:last-child {
-  margin-bottom: 0;
-}
-
-/* The one colour on the page, spent on the lead's drop cap. Its box is sized
-   to cover exactly two lines of body text so the third line starts flush. */
-.lead__body > .lead__paragraph:first-child::first-letter {
-  float: left;
-  margin: 0;
-  padding: 0 0.05em 0 0;
-  font-family: var(--font-display);
-  font-size: 4.35em;
-  font-weight: 600;
-  line-height: 0.7;
-  color: var(--press-red);
-}
-
-.source-quote {
-  margin: 1.9rem 0 0;
-  padding: 1.05rem 0;
-  border-top: 1px solid var(--ink);
+/* The top item is the page's only display-scale headline. Everything under it
+   is a ranked index: headline, then the line that says where it came from. */
+.lead-item {
+  padding: 1.15rem 0 1.2rem;
   border-bottom: 1px solid var(--ink);
 }
 
-.source-quote__text {
-  margin: 0;
-  font-size: clamp(1.2rem, 3vw, 1.4rem);
-  font-style: italic;
-  line-height: 1.45;
-  text-wrap: pretty;
-}
-
-/* Drawn by the stylesheet so the quote in the markup stays verbatim. */
-.source-quote__text::before {
-  content: "\201C";
-  padding-right: 0.04em;
+.lead-item__headline {
+  display: block;
   font-family: var(--font-display);
-  font-size: 1.3em;
-  line-height: 0;
-  vertical-align: -0.1em;
+  font-size: clamp(1.9rem, 6.4vw, 2.9rem);
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: -0.016em;
+  text-wrap: balance;
+  text-decoration: none;
 }
 
-.source-quote__credit {
+.lead-item__headline:hover,
+.item__headline:hover {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--ink-faint);
+}
+
+.items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  padding: 0.8rem 0 0.85rem;
+}
+
+.item + .item {
+  border-top: 1px solid var(--ink-faint);
+}
+
+.item__headline {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 3.4vw, 1.5rem);
+  font-weight: 560;
+  line-height: 1.16;
+  letter-spacing: -0.008em;
+  text-wrap: pretty;
+  text-decoration: none;
+}
+
+/* The source line: the site in letterspaced caps, then the quiet facts. */
+.item-source {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.6rem;
-  margin-top: 0.75rem;
+  gap: 0.1rem 0.75rem;
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
 }
 
-.source-quote__credit .smallcaps {
+.item-source__host {
   font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+
+.item-source__meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  color: var(--ink-faint);
+}
+
+.item-source__meta > * + *::before {
+  content: "\00B7";
+  padding-right: 0.4rem;
+}
+
+.item-source__discussion {
+  text-decoration-color: var(--ink-faint);
+}
+
+.item-source__author {
+  font-style: italic;
+}
+
+.empty {
+  margin: 1.5rem 0 0;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.empty__task {
+  font-family: var(--font-text);
+  font-size: 0.95em;
+  letter-spacing: 0.02em;
+  font-style: normal;
 }
 
 /* ---------- colophon ---------- */
@@ -351,7 +345,21 @@ a:hover {
     margin-top: 1.75rem;
   }
 
-  .lead__headline {
-    margin-top: 1.35rem;
+  .lead-item {
+    padding-top: 1.35rem;
+  }
+
+  .lead-item__headline {
+    max-width: 22ch;
+  }
+
+  /* A front page is read down two columns once there is a page wide enough. */
+  .items {
+    column-count: 2;
+    column-gap: 2.75rem;
+  }
+
+  .item {
+    break-inside: avoid;
   }
 }

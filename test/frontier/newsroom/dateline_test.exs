@@ -25,6 +25,27 @@ defmodule Frontier.Newsroom.DatelineTest do
     end
   end
 
+  describe "day_bounds/1" do
+    test "an IST day runs from 18:30 UTC the evening before" do
+      assert Dateline.day_bounds(~D[2026-11-22]) ==
+               {~U[2026-11-21 18:30:00Z], ~U[2026-11-22 18:30:00Z]}
+    end
+
+    test "consecutive days meet without a gap or an overlap" do
+      {_start, close} = Dateline.day_bounds(~D[2026-11-22])
+      {next_start, _close} = Dateline.day_bounds(~D[2026-11-23])
+
+      assert close == next_start
+    end
+
+    test "the instant an edition rolls over is the new day's first instant" do
+      {start, _close} = Dateline.day_bounds(~D[2026-11-22])
+
+      assert Dateline.edition_date(start) == ~D[2026-11-22]
+      assert Dateline.edition_date(DateTime.add(start, -1, :second)) == ~D[2026-11-21]
+    end
+  end
+
   describe "format/1" do
     test "sets the date line the way the paper prints it" do
       assert Dateline.format(~D[2026-11-22]) == "Sunday, 22 November 2026"

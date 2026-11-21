@@ -61,10 +61,10 @@ Expensive to change after the fact because other things hang off them: the editi
 **Build:** `Sources.Adapter` behaviour, HN adapter (Algolia API), `raw_items` schema with idempotent upsert, a `mix` task to fetch, fixtures recorded from the API.
 
 **Acceptance:**
-- [ ] one fetch populates `raw_items`; re-running adds nothing twice
-- [ ] a failing request is logged and doesn't abort the task
-- [ ] tests use fixtures only — no network in `mix test`
-- [ ] every story on the page has a working link
+- [x] one fetch populates `raw_items`; re-running adds nothing twice
+- [x] a failing request is logged and doesn't abort the task
+- [x] tests use fixtures only — no network in `mix test`
+- [x] every story on the page has a working link
 
 **Review gate:** paper or link list? Does the item model miss fields you already want (author, published time, score, discussion URL)?
 
