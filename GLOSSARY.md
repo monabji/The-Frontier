@@ -17,7 +17,7 @@ Vocabulary used across the codebase, issues and docs. When a term here competes 
 - **Candidate pool** — the day's clustered stories (~150) before the editor picks and places them.
 - **Section** — Front Page, Models & Releases, Research, Tooling & Dev, The Discourse, The Long Read, Back Page. Fixed names, no quotas: a section with nothing real disappears for the day.
 - **Also Today** — the one-line ticker for real-but-minor items; 10–15 entries, never padded.
-- **Lead** — the Front Page story above the fold; the only story with a drop cap and (later) a credited image.
+- **Lead** — the Front Page story above the fold. Until the editor writes summaries it is the newest item, set at display scale with a rule beneath it; the drop cap and dek return with the editor.
 - **Source quote** — one verbatim line from the fetched source text, shown under the summary. It grounds the summary and is checked mechanically.
 - **Discourse** — 2–3 quoted reactions to a story, set as typeset pull-quotes with handle and link, not embed widgets.
 - **Reprint window** — a story printed in the last 72 hours does not reprint unless materially updated; updates are marked as such.
@@ -42,8 +42,9 @@ Vocabulary used across the codebase, issues and docs. When a term here competes 
 ## Sources and infrastructure
 
 - **Source adapter** — one module per source (HN, RSS/company blogs, arXiv, Bluesky, X) implementing fetch → normalize, with cluster hints. Sources are peers; swapping one is configuration.
-- **Raw item** — a fetched post, article or paper before clustering.
+- **Raw item** — a fetched post, article or paper before clustering, identified by source and external id and refreshed in place; the run that last saw it is recorded.
 - **Cluster key** — the deterministic identity of a story: canonical URL, entity + time window, title similarity. Clustering is deterministic; there are no embeddings.
 - **Republish** — rebuilding and re-publishing an edition artifact from the recorded pool for the same day.
+- **Front page** — what the reader gets: one lead and a ranked index, built from each source's latest successful run for the edition day.
 - **Fetch** — one run of one source adapter: request, normalize, upsert, with a count of new and refreshed items and how long it took. A failed fetch is logged and reported, never fatal to the other sources.
 - **Source line** — the line under a front-page item that names the site it came from, the date it was posted, its score and its discussion. It is the item's provenance, not decoration.

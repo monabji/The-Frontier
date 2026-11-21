@@ -2,9 +2,10 @@ defmodule Frontier.Sources.HN do
   @moduledoc """
   Hacker News, read through Algolia's public search API.
 
-  The front page is one search with the `front_page` tag; Algolia returns the
-  stories in ranked order, which is the order the paper prints them in. No
-  scraping: the API is public, documented and unauthenticated.
+  The front page is one search with the `front_page` tag. Algolia returns the
+  hits in its own relevance order — close to HN's ranking, not identical — and
+  the paper keeps that order as the source's `position`, which is the only
+  ordering the source offers. No scraping: the API is public and unauthenticated.
 
   A story that links somewhere else keeps its outbound URL; an Ask HN or a
   text post has no outbound URL, so its discussion link is the link the reader
@@ -13,7 +14,7 @@ defmodule Frontier.Sources.HN do
 
   @behaviour Frontier.Sources.Adapter
 
-  alias Frontier.Sources.{Adapter, Item}
+  alias Frontier.Sources.{Adapter, Item, Text}
 
   @endpoint "https://hn.algolia.com/api/v1/search"
   # Ranked, not journalled: `front_page` is the tag the paper asks for, and 30
@@ -23,6 +24,9 @@ defmodule Frontier.Sources.HN do
 
   @impl true
   def key, do: "hn"
+
+  @impl true
+  def label, do: "Hacker News"
 
   @impl true
   def fetch(opts \\ []) do
@@ -37,16 +41,17 @@ defmodule Frontier.Sources.HN do
   def normalize(%{"hits" => hits}) when is_list(hits) do
     items =
       hits
-      |> Enum.with_index(1)
-      |> Enum.flat_map(fn {hit, position} -> item(hit, position) end)
+      |> Enum.flat_map(&item/1)
       |> Enum.uniq_by(& &1.external_id)
+      |> Enum.with_index(1)
+      |> Enum.map(fn {item, position} -> %{item | position: position} end)
 
     {:ok, items}
   end
 
   def normalize(_payload), do: {:error, :unexpected_payload}
 
-  defp item(%{"objectID" => id, "title" => title} = hit, position)
+  defp item(%{"objectID" => id, "title" => title} = hit)
        when is_binary(id) and id != "" and is_binary(title) and title != "" do
     discussion_url = @discussion <> id
 
@@ -57,16 +62,28 @@ defmodule Frontier.Sources.HN do
         url: blank_to_nil(hit["url"]) || discussion_url,
         discussion_url: discussion_url,
         author: blank_to_nil(hit["author"]),
-        text: plain_text(hit["story_text"]),
-        points: hit["points"],
+        kind: kind(hit["_tags"]),
+        text: Text.plain(hit["story_text"]),
+        score: hit["points"],
         comments_count: hit["num_comments"],
-        published_at: parse_datetime(hit["created_at"]),
-        position: position
+        published_at: parse_datetime(hit["created_at"])
       }
     ]
   end
 
-  defp item(_hit, _position), do: []
+  defp item(_hit), do: []
+
+  # HN says what a hit is in its tags; the paper keeps the distinction.
+  defp kind(tags) when is_list(tags) do
+    cond do
+      "job" in tags -> :job
+      "ask_hn" in tags -> :ask
+      "show_hn" in tags -> :show
+      true -> :story
+    end
+  end
+
+  defp kind(_tags), do: :story
 
   defp blank_to_nil(value) when is_binary(value) do
     case String.trim(value) do
@@ -83,53 +100,6 @@ defmodule Frontier.Sources.HN do
     case DateTime.from_iso8601(value) do
       {:ok, datetime, _offset} -> DateTime.truncate(datetime, :second)
       {:error, _reason} -> nil
-    end
-  end
-
-  @doc """
-  Algolia returns story text as HTML, entities and all. The paper stores text
-  it could later quote verbatim, so tags go and entities become characters.
-  """
-  @spec plain_text(String.t() | nil) :: String.t() | nil
-  def plain_text(nil), do: nil
-
-  def plain_text(html) when is_binary(html) do
-    html
-    |> String.replace(~r/<[^>]*>/u, " ")
-    |> decode_entities()
-    |> String.replace(~r/\s+/u, " ")
-    |> String.trim()
-  end
-
-  @named_entities %{
-    "amp" => "&",
-    "apos" => "'",
-    "gt" => ">",
-    "hellip" => "…",
-    "ldquo" => "“",
-    "lsquo" => "‘",
-    "lt" => "<",
-    "mdash" => "—",
-    "nbsp" => " ",
-    "ndash" => "–",
-    "quot" => "\"",
-    "rdquo" => "”",
-    "rsquo" => "’"
-  }
-
-  defp decode_entities(text) do
-    Regex.replace(~r/&(#[0-9]+|#x[0-9a-fA-F]+|[a-zA-Z]+);/, text, fn whole, entity ->
-      entity(entity) || whole
-    end)
-  end
-
-  defp entity("#x" <> hex), do: codepoint(String.to_integer(hex, 16))
-  defp entity("#" <> decimal), do: codepoint(String.to_integer(decimal))
-  defp entity(name), do: Map.get(@named_entities, name)
-
-  defp codepoint(value) do
-    if value in 0..0x10FFFF and value not in 0xD800..0xDFFF do
-      <<value::utf8>>
     end
   end
 end

@@ -81,9 +81,9 @@ Expensive to change after the fact because other things hang off them: the editi
 **Build:** RSS adapter, canonical URL normalization (tracking params, redirects), content hash, per-source run reporting.
 
 **Acceptance:**
-- [ ] the same article from HN and a blog renders once
-- [ ] one broken feed doesn't stop the others
-- [ ] each source's item count is visible in the run log
+- [x] the same article from HN and a blog renders once
+- [x] one broken feed doesn't stop the others
+- [x] each source's item count is visible in the run log
 
 **Review gate:** is this the right source mix? Decide now whether arXiv and Bluesky join here or later.
 

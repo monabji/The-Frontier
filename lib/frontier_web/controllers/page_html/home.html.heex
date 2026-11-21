@@ -4,7 +4,7 @@
   <main class="page">
     <PaperComponents.section_band
       section="Front Page"
-      kicker={"Hacker News · #{length(@items)} stories"}
+      kicker={kicker(@items)}
     />
     <PaperComponents.front_page items={@items} />
   </main>

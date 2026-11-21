@@ -10,7 +10,7 @@ A daily, free, public newspaper for AI and tech: one dated edition each morning,
 |---|---|
 | Promise | Complete-enough coverage of the last 24h plus a few genuinely interesting finds; the edition visibly ends |
 | Audience | Public and free; anonymous readers get the default edition, personalization needs no account |
-| Sources | HN, company blogs/changelogs, arXiv, Bluesky at $0. X is an optional paid adapter (`≤$150/mo`), disabled until launch budget is approved |
+| Sources | HN plus five feeds (OpenAI, Hugging Face, DeepMind, Google AI, Simon Willison) since phase 2; arXiv and Bluesky join at phase 3, where their text shapes get clustered. Anthropic has no public feed. X is an optional paid adapter (`≤$150/mo`), disabled until launch budget is approved |
 | Relevance | LLM editor ranks a shared corpus against a readable taste profile; thumbs refine it |
 | Format | One page, headline + 60–80 word summary + source quote + link; no full articles |
 | Cadence | One dated edition at 06:00 IST; Late Wire until 18:00 (max 3); archive freezes at midnight |
@@ -26,7 +26,7 @@ See `docs/adr/` for the decisions worth remembering and `GLOSSARY.md` for vocabu
 ## Architecture
 
 - **The edition is an immutable artifact.** The daily job builds a JSON + HTML bundle, content-addressed and stored. The web app renders it; archives and rollbacks are storage lookups.
-- **The page is a projection of an append-only log.** Stories enter the pool, get clustered, assigned, printed. Late Wire appends entries; nothing is mutated.
+- **The page is a projection of the latest run.** Each source's most recent successful fetch is the pool the page reads (ADR 0004); `raw_items` is current state, and history lives in `runs` and, later, in edition artifacts. Late Wire appends entries; nothing printed is mutated.
 - **Taste is a document, not a model.** Profiles are versioned JSON passed to the editor as context. No embeddings, no training.
 - **Sources are adapters.** Each adapter implements `fetch/1 → normalize/1` with cluster hints. X, Bluesky, HN, RSS and arXiv are peers.
 - **One process, one database.** Phoenix serves pages, Oban runs jobs, SQLite holds state. No JS build, no client framework.
@@ -36,7 +36,7 @@ See `docs/adr/` for the decisions worth remembering and `GLOSSARY.md` for vocabu
 | Table | Holds |
 |---|---|
 | `sources` | adapter key, enabled flag, config |
-| `raw_items` | fetched posts/articles/papers: source + external id (the identity), URL, discussion URL, author, title, text, score, comment count, fetch-rank position, published/fetched times; canonical URL and content hash land in phase 2 |
+| `raw_items` | fetched posts/articles/papers: source + external id (the identity), URL, canonical URL, content hash, kind, discussion URL, author, title, text excerpt, score, comment count, fetch-rank position, edition day, run id, first/last seen times |
 | `stories` | clustered events: cluster key, headline, dek, summary, source quote, primary URL, entities, section, position |
 | `story_items` | story ↔ raw item membership and role (primary, discourse, duplicate) |
 | `editions` | day, published time, status (draft/published/late/frozen), artifact path + hash, desk note, stats |
@@ -53,7 +53,11 @@ See `docs/adr/` for the decisions worth remembering and `GLOSSARY.md` for vocabu
 2. **Normalize** — canonical URLs, dedupe by URL and content hash.
 3. **Cluster** — deterministic: canonical URL, entity + 24h window, title similarity. Output: ~150-story candidate pool.
 4. **Edit** — LLM ranks, assigns sections, writes headline/dek/summary/desk note, picks 2–3 discourse quotes per story. Structured output.
-5. **Ground** — quote substring check, link resolution (200), entity presence, word budgets. Failures retry once, then the story is dropped.
+5. **Ground** — quote substring check, link resolution, entity presence, word budgets. Failures retry once, then the story is dropped.
+
+   *Where the quote is checked.* Feeds store an excerpt at fetch; HN link posts store only what the submission said. When the editor needs a verbatim quote it fetches the article once, keeps the quote and a bounded excerpt, and stores no full text (the compliance rule). Phase 4 owns this; phase 2 leaves the seam.
+
+   *What "resolves" means.* A browser-like GET returning 2xx, or a source that answers 403/429 to automated clients and is confirmed alive in a browser. A 404 or a dead host drops the story; bot protection alone does not.
 6. **Assemble** — build edition artifact, mark published, archive.
 7. **Late Wire** (hourly 06:00–18:00) — new pool stories may be appended (max 3, visibly marked).
 8. **Freeze** (00:00) — edition closes; archive immutable.

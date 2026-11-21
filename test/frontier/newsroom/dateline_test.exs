@@ -46,6 +46,16 @@ defmodule Frontier.Newsroom.DatelineTest do
     end
   end
 
+  describe "format_short/1" do
+    test "prints the IST day a story was posted, not the UTC one" do
+      assert Dateline.format_short(~U[2026-11-20 18:33:00Z]) == "21 Nov"
+    end
+
+    test "leaves a midday UTC time on the same day" do
+      assert Dateline.format_short(~U[2026-11-20 12:00:00Z]) == "20 Nov"
+    end
+  end
+
   describe "format/1" do
     test "sets the date line the way the paper prints it" do
       assert Dateline.format(~D[2026-11-22]) == "Sunday, 22 November 2026"

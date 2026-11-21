@@ -52,10 +52,18 @@ defmodule Frontier.Sources.HNTest do
                "https://math216.wordpress.com/2026/11/20/hurried-announcement-alessandro-masullo-grh/"
 
       assert lead.author == "jasondavies"
-      assert lead.points == 2370
+      assert lead.score == 2370
       assert lead.comments_count == 1150
       assert lead.discussion_url == "https://news.ycombinator.com/item?id=50579568"
       assert lead.published_at == ~U[2026-11-20 18:33:14Z]
+    end
+
+    test "keeps what HN says the hit is" do
+      assert {:ok, items} = HN.normalize(Fixtures.hn_front_page())
+
+      assert Enum.find(items, &(&1.external_id == "50583761")).kind == :ask
+      assert Enum.find(items, &(&1.external_id == "50593679")).kind == :job
+      assert Enum.find(items, &(&1.external_id == "50579568")).kind == :story
     end
 
     test "links a post with no outside URL to its discussion", %{payload: payload} do
@@ -94,13 +102,18 @@ defmodule Frontier.Sources.HNTest do
         "hits" => [
           %{"objectID" => "1", "title" => "Real story", "url" => "https://example.com/a"},
           %{"objectID" => "2", "title" => nil, "url" => "https://example.com/b"},
-          %{"title" => "No id", "url" => "https://example.com/c"}
+          %{"title" => "No id", "url" => "https://example.com/c"},
+          %{
+            "objectID" => "3",
+            "title" => "Another real story",
+            "url" => "https://example.com/d"
+          }
         ]
       }
 
-      assert {:ok, [item]} = HN.normalize(payload)
-      assert item.external_id == "1"
-      assert item.position == 1
+      assert {:ok, [first, second]} = HN.normalize(payload)
+      assert {first.external_id, first.position} == {"1", 1}
+      assert {second.external_id, second.position} == {"3", 2}
     end
 
     test "rejects a payload that is not a front page" do

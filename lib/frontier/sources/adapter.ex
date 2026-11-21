@@ -7,6 +7,7 @@ defmodule Frontier.Sources.Adapter do
   recorded payload can be replayed in a test without a client at all.
 
       key/0        the source's stable name, as stored on every raw item
+      label/0      the name the paper prints for it
       fetch/1      ask the source for one page of its items
       normalize/1  turn that payload into `Frontier.Sources.Item`s
 
@@ -25,6 +26,7 @@ defmodule Frontier.Sources.Adapter do
   @type reason :: term()
 
   @callback key() :: String.t()
+  @callback label() :: String.t()
   @callback fetch(keyword()) :: {:ok, payload()} | {:error, reason()}
   @callback normalize(payload()) :: {:ok, [Item.t()]} | {:error, reason()}
 

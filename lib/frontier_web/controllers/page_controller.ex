@@ -3,11 +3,10 @@ defmodule FrontierWeb.PageController do
 
   alias Frontier.Newsroom.Dateline
   alias Frontier.Sources
-  alias Frontier.Sources.HN
 
   def home(conn, _params) do
     date = Dateline.edition_date()
-    items = Sources.list_items(HN.key(), date: date)
+    items = Sources.front_page_items(date: date)
 
     conn
     |> assign(:page_title, "The Frontier — #{Dateline.format(date)}")

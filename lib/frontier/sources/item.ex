@@ -6,6 +6,11 @@ defmodule Frontier.Sources.Item do
   items and `Frontier.Sources.upsert_items/2` is the only thing that knows how
   they are persisted. A source key is not part of the item; the run that
   collected it owns that.
+
+  `kind` is what the source itself says the item is. HN marks its job posts,
+  Ask HN threads and Show HN launches in the tags it returns; a blog feed is
+  simply a post. Keeping the distinction now means the editorial decision
+  ("do job ads belong on the front page?") can be made later without a re-fetch.
   """
 
   @enforce_keys [:external_id, :title, :url]
@@ -15,10 +20,14 @@ defmodule Frontier.Sources.Item do
             discussion_url: nil,
             author: nil,
             text: nil,
-            points: nil,
+            kind: :story,
+            score: nil,
             comments_count: nil,
             published_at: nil,
             position: nil
+
+  @typedoc "What the source says this item is."
+  @type kind :: :story | :job | :ask | :show | :post
 
   @type t :: %__MODULE__{
           external_id: String.t(),
@@ -27,7 +36,8 @@ defmodule Frontier.Sources.Item do
           discussion_url: String.t() | nil,
           author: String.t() | nil,
           text: String.t() | nil,
-          points: non_neg_integer() | nil,
+          kind: kind(),
+          score: non_neg_integer() | nil,
           comments_count: non_neg_integer() | nil,
           published_at: DateTime.t() | nil,
           position: pos_integer() | nil

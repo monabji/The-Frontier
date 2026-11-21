@@ -6,12 +6,15 @@ defmodule Mix.Tasks.Frontier.Fetch do
 
       mix frontier.fetch
       mix frontier.fetch --source hn
+      mix frontier.fetch --source rss:openai
 
-  One run per source. A source that fails is logged and named in the summary;
-  the others still run. Re-running is safe: an item already stored is
-  refreshed, never duplicated.
+  One run per source, one line per source in the summary. A source that fails
+  is logged and named; the others still run. Re-running is safe: an item
+  already stored is refreshed, never duplicated.
 
-  The page reads what this stored, so run it before opening the paper.
+  The task finishes even when every source fails — a scheduled run that
+  reports its failure is more useful than a stack trace, and phase 6 turns
+  those failures into an alert. It says so plainly instead.
   """
 
   use Mix.Task
@@ -27,11 +30,7 @@ defmodule Mix.Tasks.Frontier.Fetch do
 
     Mix.shell().info("The Frontier — fetch, #{Frontier.Newsroom.Dateline.edition_date()}")
     Enum.each(reports, fn report -> Mix.shell().info(format_report(report)) end)
-    Mix.shell().info("The page reads what this stored.")
-
-    if reports != [] and Enum.all?(reports, &(&1.status == :error)) do
-      Mix.raise("no source produced items")
-    end
+    Mix.shell().info(summary(reports))
   end
 
   defp adapters(nil), do: Frontier.Sources.adapters()
@@ -47,13 +46,11 @@ defmodule Mix.Tasks.Frontier.Fetch do
     end
   end
 
-  @doc """
-  One source's line in the run log.
-  """
+  @doc "One source's line in the run log."
   @spec format_report(Frontier.Sources.report()) :: String.t()
   def format_report(%{status: :ok} = report) do
     "  " <>
-      String.pad_trailing(report.source, 10) <>
+      String.pad_trailing(report.source, 18) <>
       String.pad_leading("#{report.fetched}", 4) <>
       " fetched   " <>
       String.pad_leading("#{report.inserted}", 4) <>
@@ -66,7 +63,24 @@ defmodule Mix.Tasks.Frontier.Fetch do
 
   def format_report(%{status: :error} = report) do
     "  " <>
-      String.pad_trailing(report.source, 10) <>
+      String.pad_trailing(report.source, 18) <>
       " failed after #{report.duration_ms}ms: #{report.error}"
+  end
+
+  @doc """
+  What the run says at the end: how much was stored, or that nothing was.
+  """
+  @spec summary([Frontier.Sources.report()]) :: String.t()
+  def summary([]), do: "No sources are enabled."
+
+  def summary(reports) do
+    if Enum.all?(reports, &(&1.status == :error)) do
+      "Every source failed; nothing new was stored. The page keeps its last edition."
+    else
+      fresh = reports |> Enum.map(& &1.inserted) |> Enum.sum()
+      refreshed = reports |> Enum.map(& &1.updated) |> Enum.sum()
+
+      "Stored #{fresh} new and refreshed #{refreshed} items. The page reads what this stored."
+    end
   end
 end

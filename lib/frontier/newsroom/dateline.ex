@@ -19,7 +19,7 @@ defmodule Frontier.Newsroom.Dateline do
       iex> Frontier.Newsroom.Dateline.edition_date(~U[2026-11-21 18:30:00Z])
       ~D[2026-11-22]
   """
-  @spec edition_date(Calendar.datetime() | nil) :: Date.t()
+  @spec edition_date(DateTime.t() | nil) :: Date.t()
   def edition_date(now \\ nil)
 
   def edition_date(nil), do: edition_date(DateTime.utc_now())
@@ -45,6 +45,27 @@ defmodule Frontier.Newsroom.Dateline do
       |> DateTime.add(-@ist_offset_seconds, :second)
 
     {start, DateTime.add(start, 86_400, :second)}
+  end
+
+  @doc """
+  A UTC instant as the IST wall clock the reader lives by.
+
+      iex> Frontier.Newsroom.Dateline.to_ist(~U[2026-11-20 18:33:00Z])
+      ~U[2026-11-21 00:03:00Z]
+  """
+  @spec to_ist(DateTime.t()) :: DateTime.t()
+  def to_ist(%DateTime{} = utc), do: DateTime.add(utc, @ist_offset_seconds, :second)
+
+  @doc """
+  A short IST date for a source line: the day the story was posted, as the
+  reader's calendar counts it.
+
+      iex> Frontier.Newsroom.Dateline.format_short(~U[2026-11-20 18:33:00Z])
+      "21 Nov"
+  """
+  @spec format_short(DateTime.t()) :: String.t()
+  def format_short(%DateTime{} = utc) do
+    utc |> to_ist() |> Calendar.strftime("%-d %b")
   end
 
   @doc """

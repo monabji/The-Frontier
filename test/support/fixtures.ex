@@ -18,4 +18,7 @@ defmodule Frontier.Fixtures do
 
   @spec hn_front_page() :: map()
   def hn_front_page, do: load!("hn/front_page.json")
+
+  @spec rss_fixture(String.t()) :: String.t()
+  def rss_fixture(file), do: Path.join(@fixtures, "rss/" <> file) |> File.read!()
 end

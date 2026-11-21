@@ -7,10 +7,14 @@ defmodule FrontierWeb.PaperComponents do
   """
   use FrontierWeb, :html
 
+  alias Frontier.Newsroom.Dateline
   alias Frontier.Sources.RawItem
 
   @doc """
   The masthead: edition flag, wordmark, motto and the date line.
+
+  The wordmark is the page's one `<h1>`: it is the paper's name, and everything
+  below it is a section of the same page.
   """
   attr :date, Date, required: true, doc: "the edition date, in IST"
 
@@ -22,12 +26,12 @@ defmodule FrontierWeb.PaperComponents do
         <span class="smallcaps">Morning, 06:00 IST</span>
       </p>
 
-      <a class="masthead__wordmark" href={~p"/"}>The Frontier</a>
+      <h1 class="masthead__wordmark"><a href={~p"/"}>The Frontier</a></h1>
 
       <p class="masthead__motto">All the day’s AI and technology, in ten minutes.</p>
 
       <p class="dateband">
-        <time datetime={Date.to_iso8601(@date)}>{Frontier.Newsroom.Dateline.format(@date)}</time>
+        <time datetime={Date.to_iso8601(@date)}>{Dateline.format(@date)}</time>
       </p>
     </header>
     """
@@ -35,27 +39,27 @@ defmodule FrontierWeb.PaperComponents do
 
   @doc """
   The ruled band that names the section the stories below belong to, and how
-  many there are.
+  much is on the page.
   """
   attr :section, :string, required: true
   attr :kicker, :string, required: true
 
   def section_band(assigns) do
     ~H"""
-    <p class="section-band">
+    <h2 class="section-band">
       <span class="smallcaps">{@section}</span>
       <span class="smallcaps section-band__kicker">{@kicker}</span>
-    </p>
+    </h2>
     """
   end
 
   @doc """
-  The front page: the top item set as a lead, the rest ranked beneath it.
+  The front page: the newest item set as a lead, the rest ranked beneath it.
 
   Each item is a headline that goes to the story and a source line that names
-  where it came from, when, and how much discussion it drew. No item is
-  printed without a link, and no item gets a summary yet — that is the
-  editor's work, not the fetch's.
+  where it came from, when, and how much discussion it drew. No item is printed
+  without a link, and none gets a summary yet — that is the editor's work, not
+  the fetch's.
   """
   attr :items, :list, required: true
 
@@ -75,15 +79,17 @@ defmodule FrontierWeb.PaperComponents do
     </p>
 
     <article :if={@lead} class="lead-item">
-      <a class="lead-item__headline" href={@lead.url} rel="noopener noreferrer">
-        {@lead.title}
-      </a>
+      <h3 class="lead-item__headline">
+        <a href={@lead.url} rel="noopener noreferrer">{@lead.title}</a>
+      </h3>
       <.item_source item={@lead} />
     </article>
 
     <ol :if={@rest != []} class="items">
       <li :for={item <- @rest} class="item">
-        <a class="item__headline" href={item.url} rel="noopener noreferrer">{item.title}</a>
+        <h3 class="item__headline">
+          <a href={item.url} rel="noopener noreferrer">{item.title}</a>
+        </h3>
         <.item_source item={item} />
       </li>
     </ol>
@@ -91,8 +97,8 @@ defmodule FrontierWeb.PaperComponents do
   end
 
   @doc """
-  The line under a story: the site it came from, then its score, then the
-  discussion, which is itself a link.
+  The line under a story: the site it came from, how old it is in IST, its
+  score, the discussion, and who wrote it.
   """
   attr :item, :map, required: true
 
@@ -101,8 +107,10 @@ defmodule FrontierWeb.PaperComponents do
     <p class="item-source">
       <span class="smallcaps item-source__host">{RawItem.host(@item)}</span>
       <span class="item-source__meta">
-        <span :if={@item.published_at}>{published(@item.published_at)}</span>
-        <span :if={@item.points}>{pluralize(@item.points, "point")}</span>
+        <time :if={@item.published_at} datetime={DateTime.to_iso8601(@item.published_at)}>
+          {Dateline.format_short(@item.published_at)}
+        </time>
+        <span :if={@item.score}>{pluralize(@item.score, "point")}</span>
         <a
           :if={@item.discussion_url}
           class="item-source__discussion"
@@ -132,10 +140,6 @@ defmodule FrontierWeb.PaperComponents do
       </p>
     </footer>
     """
-  end
-
-  defp published(%DateTime{} = datetime) do
-    Calendar.strftime(datetime, "%-d %b")
   end
 
   defp pluralize(1, noun), do: "1 #{noun}"

@@ -20,6 +20,10 @@ config :frontier, FrontierWeb.Endpoint,
 # Print only warnings and errors during test
 config :logger, level: :warning
 
+# No test may reach the network: a test that forgets to inject a client gets
+# `{:error, :network_disabled}` instead of a real request.
+config :frontier, network: false
+
 # Oban runs no jobs and no plugins in tests: jobs are executed explicitly with
 # `Oban.Testing` so `mix test` stays deterministic and offline.
 config :frontier, Oban, testing: :manual, queues: false, plugins: false

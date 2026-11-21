@@ -2,13 +2,29 @@ defmodule Frontier.Sources do
   @moduledoc """
   The newsroom's front door: run an adapter, store what it found.
 
-  A run is one adapter asked once. It fetches, normalizes and upserts, and it
-  reports what happened — how many items it saw, how many were new, how many
-  were refreshed, how long it took. Failures are logged and turned into a
-  report, never raised: one broken source cannot stop the others.
+  A run is one adapter asked once. It opens a `runs` row, fetches, normalizes
+  and upserts, and closes the row with what it saw, how many items were new or
+  refreshed, how long it took and why it failed if it did. Failures are logged
+  and reported, never raised: one broken source cannot stop the others.
 
-  Storage is idempotent on `(source, external_id)`. Fetch the same front page
-  ten times and `raw_items` holds it once.
+  Every stored item carries the run that last saw it. The page reads only the
+  most recent successful run per source, so a front page that rotates between
+  two fetches shows the second fetch, not a union of both.
+
+  Storage is idempotent on `(source, external_id)`: fetch the same front page
+  ten times and `raw_items` holds it once, refreshed.
+
+  ## The page
+
+  `front_page_items/1` is the paper's front page before the editor exists: each
+  source's latest batch for one edition day, one entry per canonical URL, newest
+  first. The same article submitted to HN and published by its own blog is two
+  raw items and one story on the page; the publication wins over the aggregator,
+  because the reader should be sent to the source.
+
+  Two deterministic cuts stand in for editorial judgement until phase 4: job
+  ads are not stories, and nothing older than a week is printed. Both are
+  deliberately crude and both are cheap to change.
   """
 
   require Logger
@@ -17,10 +33,25 @@ defmodule Frontier.Sources do
 
   alias Frontier.Newsroom.Dateline
   alias Frontier.Repo
-  alias Frontier.Sources.{RawItem, HN}
+  alias Frontier.Sources.{Canonical, HN, RawItem, Run}
+
+  @stage "fetch"
+
+  # The paper prints 20–30 items. The pool is read wider so dedupe across
+  # sources still leaves a full page.
+  @front_page_size 30
+  @pool_size 150
+
+  # Until the editor ranks and dates stories, the paper keeps a week: daily
+  # news plus the weekly blog post, and nothing older.
+  @max_age_days 7
+
+  # A source that only points at other sources' work is not the story's home.
+  @aggregators ["hn"]
 
   @type report :: %{
           source: String.t(),
+          label: String.t(),
           status: :ok | :error,
           duration_ms: non_neg_integer(),
           fetched: non_neg_integer(),
@@ -32,52 +63,76 @@ defmodule Frontier.Sources do
 
   @doc "Every source the paper reads."
   @spec adapters() :: [module()]
-  def adapters, do: [HN]
+  def adapters, do: [HN | Frontier.Sources.RSS.feeds()]
+
+  @doc "The name the paper prints for a source key."
+  @spec label_for(String.t()) :: String.t()
+  def label_for(key) do
+    Enum.find_value(adapters(), key, fn adapter ->
+      if adapter.key() == key, do: adapter.label()
+    end)
+  end
 
   @doc """
   Runs each adapter once and returns a report per adapter, in order.
 
   Options are passed through to the adapters; `:client` replaces the network in
-  tests, `:adapters` narrows the run.
+  tests, `:adapters` narrows the run, `:redirect_resolver` replaces the
+  redirect follower, `:day` sets the edition day.
   """
   @spec run(keyword()) :: [report()]
   def run(opts \\ []) do
-    opts
-    |> Keyword.get(:adapters, adapters())
-    |> Enum.map(&run_adapter(&1, opts))
+    adapters = Keyword.get(opts, :adapters, adapters())
+    day = Keyword.get_lazy(opts, :day, &Dateline.edition_date/0)
+
+    Enum.map(adapters, &run_adapter(&1, Keyword.put(opts, :day, day)))
   end
 
   @doc """
-  Runs one adapter. A failure — a dead request, a payload that isn't what the
-  adapter expects, or the adapter itself raising — becomes an error report.
+  Runs one adapter and writes the run down.
+
+  The run row is opened before the fetch, so an adapter that hangs or crashes
+  leaves a row behind. A failure — a dead request, a payload that isn't what
+  the adapter expects, or the adapter itself raising, throwing or exiting —
+  closes the row as an error and returns a report instead of raising.
   """
   @spec run_adapter(module(), keyword()) :: report()
   def run_adapter(adapter, opts \\ []) do
-    source = adapter.key()
+    day = Keyword.get_lazy(opts, :day, &Dateline.edition_date/0)
     started = System.monotonic_time(:millisecond)
+    run = start_run(adapter, day)
 
     result =
       try do
         with {:ok, payload} <- adapter.fetch(opts),
-             {:ok, items} <- adapter.normalize(payload),
-             {:ok, counts} <- upsert_items(source, items) do
-          {:ok, counts}
+             {:ok, items} <- adapter.normalize(payload) do
+          items = follow_redirects(items, opts)
+          upsert_items(adapter.key(), items, day: day, run_id: run.id)
+        else
+          {:error, reason} -> {:error, reason}
+          other -> {:error, {:unexpected_result, other}}
         end
       rescue
         exception -> {:error, Exception.message(exception)}
+      catch
+        kind, reason -> {:error, {:caught, kind, reason}}
       end
 
-    report(source, result, elapsed(started))
+    report = report(adapter, result, elapsed(started))
+    finish_run(run, report)
+    report
   end
 
   @doc """
   Stores a source's items, one row per `(source, external_id)`.
 
   Re-running refreshes the row instead of adding another, so the counts split
-  into new and updated. An item without a title or a link is skipped and
-  counted — the paper's first rule is no link, no story.
+  into new and updated. An item without a title, a canonicalisable link or a
+  safe discussion link is skipped — the paper's first rule is no link, no
+  story. `first_seen_at` is kept; the day and run it was last seen in are
+  overwritten.
   """
-  @spec upsert_items(String.t(), [Frontier.Sources.Item.t()]) ::
+  @spec upsert_items(String.t(), [Frontier.Sources.Item.t()], keyword()) ::
           {:ok,
            %{
              fetched: non_neg_integer(),
@@ -85,19 +140,22 @@ defmodule Frontier.Sources do
              updated: non_neg_integer(),
              skipped: non_neg_integer()
            }}
-  def upsert_items(source, items) do
+  def upsert_items(source, items, opts \\ []) do
+    day = Keyword.get_lazy(opts, :day, &Dateline.edition_date/0)
+    run_id = Keyword.get(opts, :run_id)
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
     printable =
       items
-      |> Enum.filter(&printable?/1)
+      |> Enum.map(&printable/1)
+      |> Enum.reject(&is_nil/1)
       |> Enum.uniq_by(& &1.external_id)
 
     skipped = length(items) - length(printable)
     ids = Enum.map(printable, & &1.external_id)
     known = known_ids(source, ids)
 
-    rows = Enum.map(printable, &row(&1, source, now))
+    rows = Enum.map(printable, &row(&1, source, day, run_id, now))
 
     if rows != [] do
       Repo.insert_all(RawItem, rows,
@@ -116,40 +174,143 @@ defmodule Frontier.Sources do
   end
 
   @doc """
-  One source's items for one edition day, in the order they were fetched.
+  The front page for an edition day: every source's latest batch, one entry per
+  article, interleaved by each source's own order.
 
-  The day is IST, not UTC: after midnight the page has no front page until the
-  next run, which is the truth about a daily paper.
+  No source is scored the way HN scores, so before the editor exists there is
+  no shared rank. The page takes each source's first item, then its second, and
+  so on: every source contributes its best work to the top of the page and none
+  of them owns it. The same canonical URL from two sources appears once,
+  preferring the publication over the aggregator.
+  """
+  @spec front_page_items(keyword()) :: [RawItem.t()]
+  def front_page_items(opts \\ []) do
+    day = Keyword.get_lazy(opts, :day, &Dateline.edition_date/0)
+    limit = Keyword.get(opts, :limit, @front_page_size)
+
+    day
+    |> pool(limit: @pool_size)
+    |> one_per_canonical_url()
+    |> Enum.take(limit)
+  end
+
+  @doc """
+  One source's items from its latest successful run on an edition day, in the
+  order it fetched them.
   """
   @spec list_items(String.t(), keyword()) :: [RawItem.t()]
   def list_items(source, opts \\ []) do
-    date = Keyword.get_lazy(opts, :date, &Dateline.edition_date/0)
-    limit = Keyword.get(opts, :limit, 30)
-    {start, close} = Dateline.day_bounds(date)
+    day = Keyword.get_lazy(opts, :day, &Dateline.edition_date/0)
+    limit = Keyword.get(opts, :limit, @front_page_size)
 
-    Repo.all(
-      from item in RawItem,
-        where: item.source == ^source and item.fetched_at >= ^start and item.fetched_at < ^close,
-        order_by: [asc: item.position, asc: item.id],
-        limit: ^limit
+    case latest_run_id(source, day) do
+      nil ->
+        []
+
+      run_id ->
+        Repo.all(
+          from item in RawItem,
+            where: item.run_id == ^run_id,
+            order_by: [asc_nulls_last: item.position, asc: item.id],
+            limit: ^limit
+        )
+    end
+  end
+
+  defp pool(day, opts) do
+    limit = Keyword.get(opts, :limit, @pool_size)
+    run_ids = latest_run_ids(day)
+    {day_start, _day_end} = Dateline.day_bounds(day)
+    cutoff = DateTime.add(day_start, -@max_age_days * 86_400, :second)
+
+    if run_ids == [] do
+      []
+    else
+      Repo.all(
+        from item in RawItem,
+          where:
+            item.run_id in ^run_ids and item.kind != "job" and
+              (is_nil(item.published_at) or item.published_at >= ^cutoff),
+          order_by: [asc_nulls_last: item.position, asc: item.source, asc: item.id],
+          limit: ^limit
+      )
+    end
+  end
+
+  # One entry per article: the publication beats the aggregator, and the
+  # newest-first order of the pool survives the dedupe.
+  defp one_per_canonical_url(items) do
+    items
+    |> Enum.with_index()
+    |> Enum.reduce(%{}, fn {item, index}, chosen ->
+      Map.update(chosen, item.canonical_url, {item, index}, fn {current, current_index} ->
+        if home_rank(item) < home_rank(current),
+          do: {item, index},
+          else: {current, current_index}
+      end)
+    end)
+    |> Map.values()
+    |> Enum.sort_by(fn {_item, index} -> index end)
+    |> Enum.map(fn {item, index} ->
+      _ = index
+      item
+    end)
+  end
+
+  defp home_rank(item), do: if(item.source in @aggregators, do: 1, else: 0)
+
+  defp latest_run_id(source, day) do
+    Repo.one(
+      from run in Run,
+        where:
+          run.stage == ^@stage and run.source == ^source and run.edition_day == ^day and
+            run.status == "ok",
+        select: max(run.id)
     )
   end
 
-  defp report(source, {:ok, counts}, duration_ms) do
+  defp latest_run_ids(day) do
+    Repo.all(
+      from run in Run,
+        where: run.stage == ^@stage and run.edition_day == ^day and run.status == "ok",
+        group_by: run.source,
+        select: max(run.id)
+    )
+  end
+
+  @doc """
+  Follows shorteners and plain-`http` links before they are stored.
+  """
+  @spec follow_redirects([Frontier.Sources.Item.t()], keyword()) :: [
+          Frontier.Sources.Item.t()
+        ]
+  def follow_redirects(items, opts) do
+    resolver = Keyword.get(opts, :redirect_resolver, &Frontier.HTTP.final_url/1)
+    Canonical.follow_redirects(items, resolver)
+  end
+
+  defp report(adapter, {:ok, counts}, duration_ms) do
     Logger.info(
-      "[sources] #{source}: #{counts.fetched} fetched, #{counts.inserted} new, " <>
+      "[sources] #{adapter.key()}: #{counts.fetched} fetched, #{counts.inserted} new, " <>
         "#{counts.updated} refreshed, #{counts.skipped} skipped in #{duration_ms}ms"
     )
 
-    Map.merge(counts, %{source: source, status: :ok, duration_ms: duration_ms, error: nil})
+    Map.merge(counts, %{
+      source: adapter.key(),
+      label: label_of(adapter),
+      status: :ok,
+      duration_ms: duration_ms,
+      error: nil
+    })
   end
 
-  defp report(source, {:error, reason}, duration_ms) do
+  defp report(adapter, {:error, reason}, duration_ms) do
     error = format_reason(reason)
-    Logger.error("[sources] #{source} failed after #{duration_ms}ms: #{error}")
+    Logger.error("[sources] #{adapter.key()} failed after #{duration_ms}ms: #{error}")
 
     %{
-      source: source,
+      source: adapter.key(),
+      label: label_of(adapter),
       status: :error,
       duration_ms: duration_ms,
       fetched: 0,
@@ -158,6 +319,38 @@ defmodule Frontier.Sources do
       skipped: 0,
       error: error
     }
+  end
+
+  defp label_of(adapter) do
+    adapter.label()
+  rescue
+    _ -> adapter.key()
+  end
+
+  defp start_run(adapter, day) do
+    %Run{}
+    |> Run.changeset(%{
+      stage: @stage,
+      source: adapter.key(),
+      edition_day: day,
+      status: "running",
+      inserted_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    })
+    |> Repo.insert!()
+  end
+
+  defp finish_run(run, report) do
+    run
+    |> Run.changeset(%{
+      status: to_string(report.status),
+      fetched: report.fetched,
+      inserted: report.inserted,
+      updated: report.updated,
+      skipped: report.skipped,
+      duration_ms: report.duration_ms,
+      error: report.error
+    })
+    |> Repo.update!()
   end
 
   defp format_reason(reason) when is_binary(reason), do: reason
@@ -176,40 +369,47 @@ defmodule Frontier.Sources do
     |> MapSet.new()
   end
 
-  defp row(item, source, now) do
+  defp row(item, source, day, run_id, now) do
     %{
       source: source,
       external_id: item.external_id,
       title: item.title,
       url: item.url,
+      canonical_url: Canonical.normalize(item.url),
+      content_hash: Canonical.content_hash(item),
+      kind: to_string(item.kind),
       discussion_url: item.discussion_url,
       author: item.author,
       text: item.text,
-      points: item.points,
+      score: item.score,
       comments_count: item.comments_count,
       position: item.position,
       published_at: item.published_at,
+      edition_day: day,
+      run_id: run_id,
+      first_seen_at: now,
       fetched_at: now,
       inserted_at: now,
       updated_at: now
     }
   end
 
-  defp printable?(%Frontier.Sources.Item{} = item) do
-    present?(item.external_id) and present?(item.title) and link?(item.url)
-  end
-
-  defp present?(value), do: is_binary(value) and String.trim(value) != ""
-
-  defp link?(url) when is_binary(url) do
-    case URI.parse(url) do
-      %URI{scheme: scheme, host: host} when scheme in ["http", "https"] and is_binary(host) ->
-        host != ""
-
-      _ ->
-        false
+  defp printable(%Frontier.Sources.Item{} = item) do
+    if present?(item.external_id) and present?(item.title) and link?(item.url) and
+         safe?(item.discussion_url) do
+      item
     end
   end
 
+  defp printable(_other), do: nil
+
+  defp present?(value), do: is_binary(value) and String.trim(value) != ""
+
+  defp link?(url) when is_binary(url), do: Canonical.normalize(url) != nil
   defp link?(_url), do: false
+
+  # A discussion link is rendered straight into an href, so it is held to the
+  # same standard as the story link: http(s) or nothing.
+  defp safe?(nil), do: true
+  defp safe?(url), do: link?(url)
 end
