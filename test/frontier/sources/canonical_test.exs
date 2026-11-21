@@ -37,7 +37,7 @@ defmodule Frontier.Sources.CanonicalTest do
 
     test "drops the port when it is the scheme's default" do
       assert Canonical.normalize("https://example.com:443/post") == "https://example.com/post"
-      assert Canonical.normalize("http://example.com:80/post") == "http://example.com/post"
+      assert Canonical.normalize("http://example.com:80/post") == "https://example.com/post"
     end
 
     test "keeps a port that is not the default" do
@@ -45,8 +45,13 @@ defmodule Frontier.Sources.CanonicalTest do
                "https://example.com:8443/post"
     end
 
-    test "keeps http and https apart: they are different requests" do
-      refute Canonical.normalize("http://example.com/post") ==
+    test "folds http into https: the article is the identity, not the transport" do
+      assert Canonical.normalize("http://example.com/post") ==
+               Canonical.normalize("https://example.com/post")
+    end
+
+    test "drops a leading www, which is a hostname habit, not a different page" do
+      assert Canonical.normalize("https://www.example.com/post") ==
                Canonical.normalize("https://example.com/post")
     end
 

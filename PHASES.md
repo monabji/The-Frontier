@@ -100,10 +100,10 @@ Expensive to change after the fact because other things hang off them: the editi
 **Build:** cluster key (canonical URL, entity + 24h window, title similarity), `stories` + `story_items` with roles, an internal pool page for inspection.
 
 **Acceptance:**
-- [ ] golden fixture: the same launch from HN, a blog and a social post is one story
-- [ ] re-running is idempotent
-- [ ] no canonical URL appears in two stories
-- [ ] you have hand-checked ten clusters and tuned the thresholds
+- [x] golden fixture: the same launch from HN, a blog and a social post is one story
+- [x] re-running is idempotent
+- [x] no canonical URL appears in two stories
+- [x] you have hand-checked ten clusters and tuned the thresholds
 
 **Review gate:** over-merging (two different model releases become one) or under-merging (one launch becomes six). Tune now; this is the paper-vs-feed line.
 

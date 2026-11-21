@@ -1,0 +1,42 @@
+<div class="sheet pool">
+  <header class="pool__head">
+    <p class="smallcaps">Internal · not linked</p>
+    <h1 class="pool__title">The pool — {Frontier.Newsroom.Dateline.format(@day)}</h1>
+    <p class="pool__stats">
+      {length(@stories)} stories from {item_count(@stories)} items
+    </p>
+  </header>
+
+  <p :if={@stories == []} class="empty">
+    Nothing clustered yet. Run <code class="empty__task">mix frontier.cluster</code>
+    after a fetch.
+  </p>
+
+  <article :for={story <- @stories} class="pool-story">
+    <h2 class="pool-story__headline">
+      <a href={story.primary_url} rel="noopener noreferrer">{story.headline}</a>
+    </h2>
+
+    <p class="pool-story__meta">
+      <span class="smallcaps">{story.item_count} items</span>
+      <span class="smallcaps">{story.source_count} sources</span>
+      <span class="pool-story__key">{story.cluster_key}</span>
+    </p>
+
+    <ul class="pool-story__items">
+      <li :for={membership <- items_in_order(story)} class="pool-item">
+        <span class="smallcaps pool-item__role">{membership.role}</span>
+        <span class="pool-item__source">{membership.raw_item.source}</span>
+        <a class="pool-item__title" href={membership.raw_item.url} rel="noopener noreferrer">
+          {membership.raw_item.title}
+        </a>
+      </li>
+    </ul>
+  </article>
+
+  <footer class="pool__foot">
+    <p class="smallcaps">
+      Rebuild with <code class="empty__task">mix frontier.cluster</code>
+    </p>
+  </footer>
+</div>

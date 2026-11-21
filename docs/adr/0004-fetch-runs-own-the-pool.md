@@ -33,5 +33,15 @@ again.
   admin page read the same table.
 - A re-run does not append history to `raw_items`; the run row records that it
   happened and what it saw.
-- Clustering in phase 3 works from one day's latest batches, and the artifact
-  in phase 5 freezes that pool.
+- Clustering works from one day's latest batches; the artifact in phase 5
+  freezes that pool.
+- A run that fetched nothing does not become "the latest": the previous batch
+  stays visible, so a feed that suddenly parses to zero items cannot blank its
+  column.
+- The page falls back to the most recent day that did fetch, so midnight does
+  not empty the paper for five hours; it prints the last edition and its date.
+- One fetch per source per day is the intended rhythm. A second fetch replaces
+  the first batch rather than accumulating history; phase 3's 24-hour window
+  reads `published_at`, not fetch history. If Late Wire or manual re-runs need
+  membership history, that is a `run_items` table and a deliberate change to
+  this record.

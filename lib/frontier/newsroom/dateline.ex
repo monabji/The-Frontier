@@ -48,10 +48,11 @@ defmodule Frontier.Newsroom.Dateline do
   end
 
   @doc """
-  A UTC instant as the IST wall clock the reader lives by.
+  A UTC instant shifted to the IST wall clock.
 
-      iex> Frontier.Newsroom.Dateline.to_ist(~U[2026-11-20 18:33:00Z])
-      ~U[2026-11-21 00:03:00Z]
+  The result still carries the UTC zone label with IST wall-clock fields; it is
+  for formatting, not for arithmetic or storage. Use `edition_date/1` for the
+  day and `day_bounds/1` for the instants.
   """
   @spec to_ist(DateTime.t()) :: DateTime.t()
   def to_ist(%DateTime{} = utc), do: DateTime.add(utc, @ist_offset_seconds, :second)

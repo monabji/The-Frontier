@@ -110,14 +110,17 @@ defmodule FrontierWeb.PaperComponents do
         <time :if={@item.published_at} datetime={DateTime.to_iso8601(@item.published_at)}>
           {Dateline.format_short(@item.published_at)}
         </time>
-        <span :if={@item.score}>{pluralize(@item.score, "point")}</span>
+        <span :if={@item.score && @item.score > 0}>{pluralize(@item.score, "point")}</span>
         <a
           :if={@item.discussion_url}
           class="item-source__discussion"
           href={@item.discussion_url}
           rel="noopener noreferrer"
         >
-          {pluralize(@item.comments_count || 0, "comment")}
+          {pluralize(
+            @item.comments_count || 0,
+            (@item.comments_count == 1 && "comment") || "comments"
+          )}
         </a>
         <span :if={@item.author} class="item-source__author">by {@item.author}</span>
       </span>

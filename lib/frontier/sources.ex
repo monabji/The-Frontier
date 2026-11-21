@@ -33,7 +33,7 @@ defmodule Frontier.Sources do
 
   alias Frontier.Newsroom.Dateline
   alias Frontier.Repo
-  alias Frontier.Sources.{Canonical, HN, RawItem, Run}
+  alias Frontier.Sources.{Bluesky, Canonical, HN, RawItem, Run}
 
   @stage "fetch"
 
@@ -63,7 +63,16 @@ defmodule Frontier.Sources do
 
   @doc "Every source the paper reads."
   @spec adapters() :: [module()]
-  def adapters, do: [HN | Frontier.Sources.RSS.feeds()]
+  def adapters, do: [HN | Frontier.Sources.RSS.feeds()] ++ [Bluesky]
+
+  @doc """
+  The paper's source order, best first. The lead is the first item of the first
+  source until the editor ranks; it must not depend on alphabetical accident.
+  """
+  @spec source_rank(String.t()) :: non_neg_integer()
+  def source_rank(source) do
+    Enum.find_index(adapters(), &(&1.key() == source)) || 999
+  end
 
   @doc "The name the paper prints for a source key."
   @spec label_for(String.t()) :: String.t()
@@ -100,7 +109,8 @@ defmodule Frontier.Sources do
   def run_adapter(adapter, opts \\ []) do
     day = Keyword.get_lazy(opts, :day, &Dateline.edition_date/0)
     started = System.monotonic_time(:millisecond)
-    run = start_run(adapter, day)
+    source = source_of(adapter)
+    run = start_run(source, day)
 
     result =
       try do
@@ -118,7 +128,7 @@ defmodule Frontier.Sources do
         kind, reason -> {:error, {:caught, kind, reason}}
       end
 
-    report = report(adapter, result, elapsed(started))
+    report = report(adapter, source, result, elapsed(started))
     finish_run(run, report)
     report
   end
@@ -219,22 +229,81 @@ defmodule Frontier.Sources do
 
   defp pool(day, opts) do
     limit = Keyword.get(opts, :limit, @pool_size)
-    run_ids = latest_run_ids(day)
     {day_start, _day_end} = Dateline.day_bounds(day)
     cutoff = DateTime.add(day_start, -@max_age_days * 86_400, :second)
+    horizon = DateTime.add(day_start, 86_400, :second)
 
-    if run_ids == [] do
-      []
-    else
-      Repo.all(
-        from item in RawItem,
-          where:
-            item.run_id in ^run_ids and item.kind != "job" and
-              (is_nil(item.published_at) or item.published_at >= ^cutoff),
-          order_by: [asc_nulls_last: item.position, asc: item.source, asc: item.id],
-          limit: ^limit
-      )
+    day
+    |> day_items_for()
+    |> Enum.filter(fn item ->
+      case item.published_at do
+        nil ->
+          true
+
+        published ->
+          DateTime.compare(published, cutoff) != :lt and
+            DateTime.compare(published, horizon) != :gt
+      end
+    end)
+    |> Enum.take(limit)
+  end
+
+  @doc """
+  The day the paper shows: today when it has a fetch, otherwise the most recent
+  day that did.
+
+  A daily paper does not go blank at midnight waiting for its 05:15 fetch; it
+  shows the last edition and says which day it is.
+  """
+  @spec current_edition_day(Date.t() | nil) :: Date.t()
+  def current_edition_day(today \\ nil) do
+    today = today || Dateline.edition_date()
+
+    if fetched_on?(today), do: today, else: latest_edition_day() || today
+  end
+
+  defp fetched_on?(day) do
+    Repo.exists?(
+      from run in Run,
+        where:
+          run.stage == ^@stage and run.edition_day == ^day and run.status == "ok" and
+            run.fetched > 0
+    )
+  end
+
+  defp latest_edition_day do
+    Repo.one(
+      from run in Run,
+        where: run.stage == ^@stage and run.status == "ok" and run.fetched > 0,
+        select: max(run.edition_day)
+    )
+  end
+
+  defp day_items_for(day) do
+    case latest_run_ids(day) do
+      [] ->
+        []
+
+      run_ids ->
+        Repo.all(
+          from item in RawItem,
+            where: item.run_id in ^run_ids and item.kind != "job"
+        )
+        |> Enum.sort_by(fn item ->
+          {item.position || 9_999, source_rank(item.source), item.id}
+        end)
     end
+  end
+
+  @doc """
+  Every item from each source's latest successful run on an edition day, in
+  each source's own order. The clustering pool reads this; job ads are already
+  gone.
+  """
+  @spec day_items(keyword()) :: [RawItem.t()]
+  def day_items(opts \\ []) do
+    day = Keyword.get_lazy(opts, :day, &Dateline.edition_date/0)
+    day_items_for(day)
   end
 
   # One entry per article: the publication beats the aggregator, and the
@@ -264,7 +333,7 @@ defmodule Frontier.Sources do
       from run in Run,
         where:
           run.stage == ^@stage and run.source == ^source and run.edition_day == ^day and
-            run.status == "ok",
+            run.status == "ok" and run.fetched > 0,
         select: max(run.id)
     )
   end
@@ -272,7 +341,9 @@ defmodule Frontier.Sources do
   defp latest_run_ids(day) do
     Repo.all(
       from run in Run,
-        where: run.stage == ^@stage and run.edition_day == ^day and run.status == "ok",
+        where:
+          run.stage == ^@stage and run.edition_day == ^day and run.status == "ok" and
+            run.fetched > 0,
         group_by: run.source,
         select: max(run.id)
     )
@@ -289,14 +360,14 @@ defmodule Frontier.Sources do
     Canonical.follow_redirects(items, resolver)
   end
 
-  defp report(adapter, {:ok, counts}, duration_ms) do
+  defp report(adapter, source, {:ok, counts}, duration_ms) do
     Logger.info(
-      "[sources] #{adapter.key()}: #{counts.fetched} fetched, #{counts.inserted} new, " <>
+      "[sources] #{source}: #{counts.fetched} fetched, #{counts.inserted} new, " <>
         "#{counts.updated} refreshed, #{counts.skipped} skipped in #{duration_ms}ms"
     )
 
     Map.merge(counts, %{
-      source: adapter.key(),
+      source: source,
       label: label_of(adapter),
       status: :ok,
       duration_ms: duration_ms,
@@ -304,12 +375,12 @@ defmodule Frontier.Sources do
     })
   end
 
-  defp report(adapter, {:error, reason}, duration_ms) do
+  defp report(adapter, source, {:error, reason}, duration_ms) do
     error = format_reason(reason)
-    Logger.error("[sources] #{adapter.key()} failed after #{duration_ms}ms: #{error}")
+    Logger.error("[sources] #{source} failed after #{duration_ms}ms: #{error}")
 
     %{
-      source: adapter.key(),
+      source: source,
       label: label_of(adapter),
       status: :error,
       duration_ms: duration_ms,
@@ -321,17 +392,23 @@ defmodule Frontier.Sources do
     }
   end
 
+  defp source_of(adapter) do
+    adapter.key()
+  rescue
+    _ -> "unknown"
+  end
+
   defp label_of(adapter) do
     adapter.label()
   rescue
     _ -> adapter.key()
   end
 
-  defp start_run(adapter, day) do
+  defp start_run(source, day) do
     %Run{}
     |> Run.changeset(%{
       stage: @stage,
-      source: adapter.key(),
+      source: source,
       edition_day: day,
       status: "running",
       inserted_at: DateTime.utc_now() |> DateTime.truncate(:second)

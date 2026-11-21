@@ -1,0 +1,29 @@
+[
+  {
+    "source": "hn",
+    "external_id": "50581260",
+    "title": "Inkling 2 Mini",
+    "url": "https://thinkingmachines.ai/news/inkling-2-mini/?utm_source=hn&utm_medium=social",
+    "kind": "story",
+    "score": 1342,
+    "published_at": "2026-11-20T20:12:19Z"
+  },
+  {
+    "source": "rss:huggingface",
+    "external_id": "https://huggingface.co/blog/inkling2mini",
+    "title": "Welcome Inkling 2 Mini, Cutting-edge Performance for your Local Setup",
+    "url": "https://huggingface.co/blog/inkling2mini",
+    "kind": "post",
+    "score": null,
+    "published_at": "2026-11-20T00:00:00Z"
+  },
+  {
+    "source": "bsky",
+    "external_id": "at://did:plc:inkling/app.bsky.feed.post/3kxyz",
+    "title": "Inkling 2 Mini is here: 3.4B active parameters and it runs on a laptop",
+    "url": "https://bsky.app/profile/inkling.bsky.social/post/3kxyz",
+    "kind": "post",
+    "score": null,
+    "published_at": "2026-11-20T09:30:00Z"
+  }
+]

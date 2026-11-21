@@ -275,7 +275,9 @@ defmodule Frontier.SourcesTest do
 
       assert "hn" in keys
       assert "rss:openai" in keys
-      assert length(keys) == 6
+      assert "rss:arstechnica" in keys
+      assert "bsky" in keys
+      assert length(keys) == 8
     end
   end
 
@@ -383,6 +385,35 @@ defmodule Frontier.SourcesTest do
       Sources.run(adapters: [HN], client: client(), day: @day)
 
       assert length(Sources.front_page_items(day: @day, limit: 12)) == 12
+    end
+  end
+
+  describe "current_edition_day/1" do
+    test "before the day's first fetch, the paper shows the last edition" do
+      Sources.run(adapters: [HN], client: client(), day: ~D[2026-11-21])
+
+      assert Sources.current_edition_day(~D[2026-11-22]) == ~D[2026-11-21]
+    end
+
+    test "once the day has a fetch, the paper shows today" do
+      Sources.run(adapters: [HN], client: client(), day: ~D[2026-11-21])
+      Sources.run(adapters: [HN], client: client(), day: ~D[2026-11-22])
+
+      assert Sources.current_edition_day(~D[2026-11-22]) == ~D[2026-11-22]
+    end
+
+    test "a day whose only run fetched nothing does not count" do
+      Sources.run(adapters: [HN], client: client(), day: ~D[2026-11-21])
+
+      capture_log(fn ->
+        Sources.run(
+          adapters: [HN],
+          client: fn _url -> {:ok, %{"hits" => []}} end,
+          day: ~D[2026-11-22]
+        )
+      end)
+
+      assert Sources.current_edition_day(~D[2026-11-22]) == ~D[2026-11-21]
     end
   end
 

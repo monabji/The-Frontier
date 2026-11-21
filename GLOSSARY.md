@@ -13,7 +13,10 @@ Vocabulary used across the codebase, issues and docs. When a term here competes 
 
 ## Editorial
 
-- **Story** — one clustered real-world event: headline, dek, summary, one verbatim source quote, one working link, optional discourse quotes. A story appears at most once per edition.
+- **Story** — one clustered real-world event: headline, dek, summary, one verbatim source quote, one working link, optional discourse quotes. A story appears at most once per edition. Before the editor writes copy, its headline is the primary item's title.
+- **Cluster** — the deterministic grouping that makes one story out of many raw items: same canonical URL, a distinctive name shared within 24 hours, or a near-identical title inside the same window (ADR 0005).
+- **Story item** — a raw item's membership in a story, with its role: `primary` (the publication whose link is printed), `discussion` (an aggregator's thread), or `duplicate` (another source carrying the same event).
+- **The pool** — the day's stories before the editor ranks and places them, inspected at `/pool`.
 - **Candidate pool** — the day's clustered stories (~150) before the editor picks and places them.
 - **Section** — Front Page, Models & Releases, Research, Tooling & Dev, The Discourse, The Long Read, Back Page. Fixed names, no quotas: a section with nothing real disappears for the day.
 - **Also Today** — the one-line ticker for real-but-minor items; 10–15 entries, never padded.
@@ -41,7 +44,7 @@ Vocabulary used across the codebase, issues and docs. When a term here competes 
 
 ## Sources and infrastructure
 
-- **Source adapter** — one module per source (HN, RSS/company blogs, arXiv, Bluesky, X) implementing fetch → normalize, with cluster hints. Sources are peers; swapping one is configuration.
+- **Source adapter** — one module per source (HN, RSS feeds, arXiv, Bluesky, X) implementing fetch → normalize. Sources are peers; swapping one is configuration, and each run reports its own counts and failure.
 - **Raw item** — a fetched post, article or paper before clustering, identified by source and external id and refreshed in place; the run that last saw it is recorded.
 - **Cluster key** — the deterministic identity of a story: canonical URL, entity + time window, title similarity. Clustering is deterministic; there are no embeddings.
 - **Republish** — rebuilding and re-publishing an edition artifact from the recorded pool for the same day.

@@ -7,15 +7,19 @@ defmodule Frontier.Sources.Canonical do
   from three identities, so every item is reduced to a canonical URL before it
   is stored:
 
-    * scheme and host lowercased, default port dropped
+    * scheme and host lowercased, `www.` dropped
+    * `http` folded into `https`: the identity of an article is not the
+      transport it was published over
+    * default port dropped
     * fragment dropped — it names a place in the page, not another page
     * campaign parameters dropped, the rest of the query sorted
     * trailing slash dropped, except at the root
 
-  `http` and `https` are deliberately *not* merged: they are different
-  requests, and the redirect follower below upgrades the one that redirects.
-  Shorteners and plain-`http` links are followed once, through an injected
-  resolver, so the rules stay testable without a network.
+  Identity has to be a pure function of the URL, or re-running a cluster over
+  the same pool could produce different stories whenever the network answers
+  differently. Short links are still followed once, through an injected
+  resolver, but a failure keeps the URL as it was rather than making identity
+  depend on a request.
   """
 
   alias Frontier.Sources.Item
@@ -59,40 +63,51 @@ defmodule Frontier.Sources.Canonical do
   def normalize(""), do: nil
 
   def normalize(url) when is_binary(url) do
-    with %URI{scheme: scheme, host: host} <- URI.parse(url),
-         scheme when scheme in ["http", "https"] <- String.downcase(scheme || ""),
-         host when is_binary(host) and host != "" <- host |> String.downcase() do
+    uri = URI.parse(url)
+    scheme = uri.scheme |> to_string() |> String.downcase()
+
+    if scheme in ["http", "https"] and is_binary(uri.host) and uri.host != "" do
       %URI{
-        scheme: scheme,
-        host: host,
-        port: kept_port(scheme, URI.parse(url).port),
-        path: path(URI.parse(url).path),
-        query: query(URI.parse(url).query),
+        scheme: identity_scheme(scheme),
+        host: uri.host |> String.downcase() |> strip_www(),
+        port: kept_port(scheme, uri.port),
+        path: path(uri.path),
+        query: query(uri.query),
         fragment: nil,
         userinfo: nil
       }
       |> URI.to_string()
-    else
-      _ -> nil
     end
   end
 
   def normalize(_url), do: nil
 
   @doc """
-  A digest of what the item says: its canonical URL plus its title.
+  A digest of what the item says, independent of where it lives.
 
-  Stored alongside the canonical URL so a later stage can spot the same story
-  republished under a new address. It is a fingerprint, not a merge key —
-  phase 2 dedupes on the canonical URL alone.
+  Title plus body text, whitespace collapsed and lowercased: the same article
+  syndicated at two addresses hashes the same, which is what the clustering
+  pool and the reprint window need. It is a fingerprint, not a merge key —
+  dedupe is on the canonical URL.
   """
   @spec content_hash(Item.t()) :: String.t()
   def content_hash(%Item{} = item) do
     payload =
-      [normalize(item.url), item.title |> to_string() |> String.trim()]
+      [item.title, item.text]
+      |> Enum.map(&utterance/1)
       |> Enum.join("\n")
 
     :crypto.hash(:sha256, payload) |> Base.encode16(case: :lower)
+  end
+
+  defp utterance(nil), do: ""
+
+  defp utterance(text) do
+    text
+    |> to_string()
+    |> String.downcase()
+    |> String.replace(~r/\s+/u, " ")
+    |> String.trim()
   end
 
   @doc """
@@ -129,10 +144,16 @@ defmodule Frontier.Sources.Canonical do
     end
   end
 
+  defp identity_scheme("http"), do: "https"
+  defp identity_scheme(scheme), do: scheme
+
+  defp strip_www(host), do: String.replace_prefix(host, "www.", "")
+
   defp kept_port(scheme, port) do
     case {scheme, port} do
       {"http", 80} -> nil
       {"https", 443} -> nil
+      {"http", 443} -> nil
       {_scheme, port} -> port
     end
   end

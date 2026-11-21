@@ -5,8 +5,8 @@ defmodule FrontierWeb.PageController do
   alias Frontier.Sources
 
   def home(conn, _params) do
-    date = Dateline.edition_date()
-    items = Sources.front_page_items(date: date)
+    date = Sources.current_edition_day()
+    items = Sources.front_page_items(day: date)
 
     conn
     |> assign(:page_title, "The Frontier — #{Dateline.format(date)}")

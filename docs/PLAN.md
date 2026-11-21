@@ -10,7 +10,7 @@ A daily, free, public newspaper for AI and tech: one dated edition each morning,
 |---|---|
 | Promise | Complete-enough coverage of the last 24h plus a few genuinely interesting finds; the edition visibly ends |
 | Audience | Public and free; anonymous readers get the default edition, personalization needs no account |
-| Sources | HN plus five feeds (OpenAI, Hugging Face, DeepMind, Google AI, Simon Willison) since phase 2; arXiv and Bluesky join at phase 3, where their text shapes get clustered. Anthropic has no public feed. X is an optional paid adapter (`≤$150/mo`), disabled until launch budget is approved |
+| Sources | HN, six feeds (OpenAI, Hugging Face, DeepMind, Google AI, Ars Technica, Simon Willison) and Bluesky since phase 3; arXiv joins next, filling Research. Anthropic has no public feed. X is an optional paid adapter (`≤$150/mo`), disabled until launch budget is approved |
 | Relevance | LLM editor ranks a shared corpus against a readable taste profile; thumbs refine it |
 | Format | One page, headline + 60–80 word summary + source quote + link; no full articles |
 | Cadence | One dated edition at 06:00 IST; Late Wire until 18:00 (max 3); archive freezes at midnight |
@@ -37,8 +37,8 @@ See `docs/adr/` for the decisions worth remembering and `GLOSSARY.md` for vocabu
 |---|---|
 | `sources` | adapter key, enabled flag, config |
 | `raw_items` | fetched posts/articles/papers: source + external id (the identity), URL, canonical URL, content hash, kind, discussion URL, author, title, text excerpt, score, comment count, fetch-rank position, edition day, run id, first/last seen times |
-| `stories` | clustered events: cluster key, headline, dek, summary, source quote, primary URL, entities, section, position |
-| `story_items` | story ↔ raw item membership and role (primary, discourse, duplicate) |
+| `stories` | clustered events: edition day, cluster key, headline, canonical/primary URL, item and source counts, first/last published. Dek, summary, quote and section arrive with the editor |
+| `story_items` | story ↔ raw item membership and role (primary, discussion, duplicate) |
 | `editions` | day, published time, status (draft/published/late/frozen), artifact path + hash, desk note, stats |
 | `edition_entries` | edition ↔ story placement: section, position, kind (lead/standard/ticker/quote), origin (edition/late/wire) |
 | `readers` | signed reader ID, first/last seen |
@@ -51,7 +51,7 @@ See `docs/adr/` for the decisions worth remembering and `GLOSSARY.md` for vocabu
 
 1. **Fetch** (05:15 IST) — adapters write raw items.
 2. **Normalize** — canonical URLs, dedupe by URL and content hash.
-3. **Cluster** — deterministic: canonical URL, entity + 24h window, title similarity. Output: ~150-story candidate pool.
+3. **Cluster** — deterministic: canonical URL, distinctive name + 24h window, title similarity ≥ 0.55 (ADR 0005). Output: the day's candidate pool, rebuilt in place.
 4. **Edit** — LLM ranks, assigns sections, writes headline/dek/summary/desk note, picks 2–3 discourse quotes per story. Structured output.
 5. **Ground** — quote substring check, link resolution, entity presence, word budgets. Failures retry once, then the story is dropped.
 

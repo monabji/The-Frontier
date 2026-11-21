@@ -30,6 +30,14 @@ defmodule Frontier.Sources.RSS.GoogleAI do
     url: "https://blog.google/technology/ai/rss/"
 end
 
+defmodule Frontier.Sources.RSS.ArsTechnica do
+  @moduledoc "Ars Technica, an independent technology publication."
+  use Frontier.Sources.RSS.Feed,
+    key: "rss:arstechnica",
+    label: "Ars Technica",
+    url: "https://arstechnica.com/feed/"
+end
+
 defmodule Frontier.Sources.RSS.SimonWillison do
   @moduledoc "Simon Willison's weblog, an Atom feed."
   use Frontier.Sources.RSS.Feed,

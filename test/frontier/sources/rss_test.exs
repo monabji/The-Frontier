@@ -10,9 +10,10 @@ defmodule Frontier.Sources.RSSTest do
       feeds = RSS.feeds()
       keys = Enum.map(feeds, & &1.key())
 
-      assert length(feeds) == 5
-      assert length(Enum.uniq(keys)) == 5
+      assert length(feeds) == 6
+      assert length(Enum.uniq(keys)) == 6
       assert "rss:openai" in keys
+      assert "rss:arstechnica" in keys
       assert Enum.all?(feeds, &String.starts_with?(&1.key(), "rss:"))
       assert Enum.all?(feeds, &(&1.label() != ""))
       assert Enum.all?(feeds, &String.starts_with?(&1.url(), "https://"))

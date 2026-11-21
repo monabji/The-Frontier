@@ -43,6 +43,7 @@ defmodule Frontier.Sources.RSS do
       Frontier.Sources.RSS.HuggingFace,
       Frontier.Sources.RSS.DeepMind,
       Frontier.Sources.RSS.GoogleAI,
+      Frontier.Sources.RSS.ArsTechnica,
       Frontier.Sources.RSS.SimonWillison
     ]
   end
@@ -124,7 +125,7 @@ defmodule Frontier.Sources.RSS do
   defp feed_entries(_other), do: []
 
   defp item(entry, position) do
-    title = text(find(entry, :title))
+    title = Text.plain(text(find(entry, :title)))
     url = link(entry)
     external_id = text(find(entry, :guid)) || text(find(entry, :id)) || url
 
@@ -233,11 +234,15 @@ defmodule Frontier.Sources.RSS do
 
   defp find(nil, _name), do: nil
 
+  # The needle is matched on its local name too, so a prefixed lookup
+  # (`:"dc:creator"`) finds `<dc:creator>` without the prefix leaking in.
   defp find(element, name) do
+    local = local_name(name)
+
     element
     |> children()
     |> Enum.find(fn child ->
-      elem(child, 0) == :xmlElement and name(child) == name
+      elem(child, 0) == :xmlElement and name(child) == local
     end)
   end
 
