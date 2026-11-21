@@ -5,6 +5,7 @@ Vocabulary used across the codebase, issues and docs. When a term here competes 
 ## The paper
 
 - **Edition** — the paper's unit of record: one immutable, dated bundle published at 06:00 IST, identified by its date (`2026-11-22`). After midnight it is frozen; corrections and late additions live in its log, never by rewriting it.
+- **Edition date** — the calendar day an edition belongs to, in India Standard Time (UTC+05:30, no daylight saving). The date line and the archive key both use the IST date; a UTC evening is already tomorrow's edition (`Frontier.Newsroom.Dateline`).
 - **Edition artifact** — the content-addressed JSON + rendered HTML bundle for one edition. Archives and rollbacks read artifacts, never re-query the database.
 - **Late Wire** — stories added to the current day's edition between 06:00 and 18:00, capped at 3, visibly marked with the time added. Not a second edition.
 - **Quiet day** — an edition with fewer stories than target, labelled honestly in the desk note. Never padded.

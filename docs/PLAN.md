@@ -17,7 +17,7 @@ A daily, free, public newspaper for AI and tech: one dated edition each morning,
 | Sections | Front Page, Models & Releases, Research, Tooling & Dev, The Discourse, The Long Read, Back Page, plus Also Today |
 | Stack | Elixir + Phoenix LiveView + SQLite + Oban, one release binary, one free VM |
 | Identity | Signed anonymous cookie ID, no accounts; saveable "your paper" link |
-| Design | Letterpress broadsheet: Newsreader body, display face TBD (Fraunces vs Bodoni Moda), letterspaced small-cap datelines, no images in v1, Night Edition |
+| Design | Letterpress broadsheet: Newsreader body, Fraunces display (settled in phase 0, see `docs/DESIGN.md`), letterspaced small-cap datelines, no images in v1, Night Edition |
 | Ops | Oracle Cloud Always Free ARM VM, Caddy TLS, Oban cron, alerts, delayed-edition fallback |
 | Money | $0 infrastructure; LLM cents per edition; X is the only paid upgrade and is not needed to launch |
 
@@ -79,7 +79,7 @@ Fold generation is lazy: on a reader's first page load of the day, the editor bu
 ## Design
 
 - Wordmark + date line, hairline rules, small-caps section kickers, drop cap on the lead.
-- Body: **Newsreader**. Display: **Fraunces** or **Bodoni Moda** (decided once the product is real). Datelines/source lines: letterspaced small caps of the text face. No mono by default.
+- Body: **Newsreader**. Display: **Fraunces**, settled in phase 0 — the wordmark and headlines are the only place it appears, and it is named once, in `--font-display` (`docs/DESIGN.md`). Datelines/source lines: letterspaced small caps of the text face. No mono by default.
 - No images in v1; a single credited source image on the lead may be earned later. No AI illustrations.
 - Mobile: single column, larger type, masthead and rules retained — a broadsheet folded, not a web app.
 - Night Edition: dimmed newsprint, not OLED black.
@@ -117,5 +117,5 @@ Fourteen consecutive days of a 06:00 edition where: every story links, a normal 
 
 - X ingest (adapter ready, disabled): official pay-per-use, ~50 accounts, cap $150/mo, official display rules.
 - RSS feed (dropped; ~30 lines when wanted), email digest, accounts/login, app.
-- Lead image policy, final display typeface, per-edition LLM model and cost ceiling (start cheap; record cost per run).
+- Lead image policy, per-edition LLM model and cost ceiling (start cheap; record cost per run).
 - Domain and handle availability for "The Frontier".
