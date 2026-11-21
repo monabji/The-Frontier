@@ -1,6 +1,6 @@
 defmodule FrontierWeb.PaperComponents do
   @moduledoc """
-  The paper's parts: masthead, date band, front-page items, colophon.
+  The paper's parts: masthead, date band, front-page stories, colophon.
 
   Everything here is type and rule-work. No cards, no buttons, no images, no
   decoration that does not tell the reader something.
@@ -54,18 +54,18 @@ defmodule FrontierWeb.PaperComponents do
   end
 
   @doc """
-  The front page: the newest item set as a lead, the rest ranked beneath it.
+  The front page: the best-placed story set as a lead, the rest ranked beneath.
 
-  Each item is a headline that goes to the story and a source line that names
-  where it came from, when, and how much discussion it drew. No item is printed
-  without a link, and none gets a summary yet — that is the editor's work, not
-  the fetch's.
+  A story is one event however many sources carried it: the headline goes to
+  the publication's link, and the source line carries the conversation — the
+  aggregator's thread, its comment count and its score — so the reader can read
+  the story or the argument about it.
   """
-  attr :items, :list, required: true
+  attr :stories, :list, required: true
 
   def front_page(assigns) do
     {lead, rest} =
-      case assigns.items do
+      case assigns.stories do
         [] -> {nil, []}
         [lead | rest] -> {lead, rest}
       end
@@ -73,56 +73,61 @@ defmodule FrontierWeb.PaperComponents do
     assigns = assign(assigns, lead: lead, rest: rest)
 
     ~H"""
-    <p :if={@items == []} class="empty">
+    <p :if={@stories == []} class="empty">
       No stories yet. Run <code class="empty__task">mix frontier.fetch</code>
+      and <code class="empty__task">mix frontier.cluster</code>
       before the paper can print.
     </p>
 
     <article :if={@lead} class="lead-item">
       <h3 class="lead-item__headline">
-        <a href={@lead.url} rel="noopener noreferrer">{@lead.title}</a>
+        <a href={primary(@lead).url} rel="noopener noreferrer">{@lead.headline}</a>
       </h3>
-      <.item_source item={@lead} />
+      <.story_source story={@lead} />
     </article>
 
     <ol :if={@rest != []} class="items">
-      <li :for={item <- @rest} class="item">
+      <li :for={story <- @rest} class="item">
         <h3 class="item__headline">
-          <a href={item.url} rel="noopener noreferrer">{item.title}</a>
+          <a href={primary(story).url} rel="noopener noreferrer">{story.headline}</a>
         </h3>
-        <.item_source item={item} />
+        <.story_source story={story} />
       </li>
     </ol>
     """
   end
 
   @doc """
-  The line under a story: the site it came from, how old it is in IST, its
-  score, the discussion, and who wrote it.
+  The line under a story: where it was published, when in IST, its score, and
+  the discussion — which is a link to the argument, not to the article again.
   """
-  attr :item, :map, required: true
+  attr :story, :map, required: true
 
-  def item_source(assigns) do
+  def story_source(assigns) do
+    primary = primary(assigns.story)
+    discussion = discussion(assigns.story)
+
+    assigns = assign(assigns, primary: primary, discussion: discussion)
+
     ~H"""
     <p class="item-source">
-      <span class="smallcaps item-source__host">{RawItem.host(@item)}</span>
+      <span class="smallcaps item-source__host">{RawItem.host(@primary)}</span>
       <span class="item-source__meta">
-        <time :if={@item.published_at} datetime={DateTime.to_iso8601(@item.published_at)}>
-          {Dateline.format_short(@item.published_at)}
+        <time :if={@primary.published_at} datetime={DateTime.to_iso8601(@primary.published_at)}>
+          {Dateline.format_short(@primary.published_at)}
         </time>
-        <span :if={@item.score && @item.score > 0}>{pluralize(@item.score, "point")}</span>
+        <span :if={@primary.score && @primary.score > 0}>
+          {pluralize(@primary.score, "point")}
+        </span>
         <a
-          :if={@item.discussion_url}
+          :if={@discussion}
           class="item-source__discussion"
-          href={@item.discussion_url}
+          href={discussion_url(@discussion)}
           rel="noopener noreferrer"
         >
-          {pluralize(
-            @item.comments_count || 0,
-            (@item.comments_count == 1 && "comment") || "comments"
-          )}
+          {discussion_label(@discussion)}
         </a>
-        <span :if={@item.author} class="item-source__author">by {@item.author}</span>
+        <span :if={@primary.author} class="item-source__author">by {@primary.author}</span>
       </span>
     </p>
     """
@@ -144,6 +149,33 @@ defmodule FrontierWeb.PaperComponents do
     </footer>
     """
   end
+
+  defp primary(story) do
+    story.story_items
+    |> Enum.find(&(&1.role == "primary"))
+    |> case do
+      nil -> story.story_items |> List.first() |> item_of()
+      member -> item_of(member)
+    end
+  end
+
+  defp discussion(story) do
+    story.story_items
+    |> Enum.find(&(&1.role == "discussion"))
+    |> item_of()
+  end
+
+  defp item_of(nil), do: nil
+  defp item_of(member), do: member.raw_item
+
+  defp discussion_url(item), do: item.discussion_url || item.url
+
+  # A thread with no comments yet is still worth a link; it just cannot claim a
+  # count it does not have.
+  defp discussion_label(%{comments_count: count}) when is_integer(count) and count > 0,
+    do: pluralize(count, "comment")
+
+  defp discussion_label(_item), do: "Discussion"
 
   defp pluralize(1, noun), do: "1 #{noun}"
   defp pluralize(count, noun), do: "#{thousands(count)} #{noun}s"

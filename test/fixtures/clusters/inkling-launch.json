@@ -6,7 +6,8 @@
     "url": "https://thinkingmachines.ai/news/inkling-2-mini/?utm_source=hn&utm_medium=social",
     "kind": "story",
     "score": 1342,
-    "published_at": "2026-11-20T20:12:19Z"
+    "published_at": "2026-11-20T20:12:19Z",
+    "discussion_url": "https://news.ycombinator.com/item?id=50581260"
   },
   {
     "source": "rss:huggingface",
@@ -24,6 +25,7 @@
     "url": "https://bsky.app/profile/inkling.bsky.social/post/3kxyz",
     "kind": "post",
     "score": null,
-    "published_at": "2026-11-20T09:30:00Z"
+    "published_at": "2026-11-20T09:30:00Z",
+    "discussion_url": "https://bsky.app/profile/inkling.bsky.social/post/3kxyz"
   }
 ]

@@ -8,16 +8,24 @@ defmodule FrontierWeb.PageHTML do
 
   embed_templates "page_html/*"
 
-  # The band tells the reader how much is on the page and whose work it is.
-  # "Items" until clusters make them stories in phase 3.
+  # The band tells the reader how much is on the page. Stories, now that the
+  # pool exists: a story is one event, however many sources carried it.
   defp kicker([]), do: "Nothing on the page"
 
-  defp kicker(items) do
-    sources = items |> Enum.map(& &1.source) |> Enum.uniq() |> length()
+  defp kicker(stories) do
+    sources =
+      stories
+      |> Enum.flat_map(& &1.story_items)
+      |> Enum.map(& &1.raw_item.source)
+      |> Enum.uniq()
+      |> length()
 
-    "#{pluralize(sources, "source")} · #{pluralize(length(items), "item")}"
+    "#{stories(length(stories))} · #{sources(sources)}"
   end
 
-  defp pluralize(1, noun), do: "1 #{noun}"
-  defp pluralize(count, noun), do: "#{count} #{noun}s"
+  defp stories(1), do: "1 story"
+  defp stories(count), do: "#{count} stories"
+
+  defp sources(1), do: "1 source"
+  defp sources(count), do: "#{count} sources"
 end

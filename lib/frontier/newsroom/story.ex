@@ -28,6 +28,8 @@ defmodule Frontier.Newsroom.Story do
     field :source_count, :integer, default: 1
     field :first_published_at, :utc_datetime
     field :last_published_at, :utc_datetime
+    field :sort_position, :integer
+    field :primary_source, :string
 
     has_many :story_items, StoryItem
 
@@ -44,7 +46,9 @@ defmodule Frontier.Newsroom.Story do
     :item_count,
     :source_count,
     :first_published_at,
-    :last_published_at
+    :last_published_at,
+    :sort_position,
+    :primary_source
   ]
 
   @doc false

@@ -13,36 +13,67 @@ a probabilistic claim rather than a guarantee.
 
 ## Decision
 
-Clustering is a pure function of the day's items:
+Clustering is a pure function of the day's pool. Two items are the same story
+when, checked in this order:
 
-1. **Same canonical URL** — always the same story. Identity is normalised URL:
-   lowercased, `www.` dropped, `http` folded into `https`, campaign parameters
-   and fragments removed, query sorted, trailing slash dropped.
-2. **Same distinctive name within 24 hours** — a name is a run of capitalised
-   words with version numbers kept ("Inkling 2 Mini", "Gemini 4 Argon"). A
-   name of two words is a company or a family ("Hugging Face") and never merges
-   two stories; three words, or a version, is an event.
-3. **Title overlap above 0.55** (Jaccard over content words, stopwords and bare
-   numbers removed) within the same 24-hour window, for the same event written
-   two ways.
+1. **Same canonical URL.** Identity is the normalised URL: lowercased, `www.`
+   dropped, `http` folded into `https`, campaign parameters and fragments
+   removed, query sorted, trailing slash dropped.
+2. **No one-word-difference.** Two headlines of the same length that differ by
+   exactly one content word name two products ("Gemini 4 Neon for developers"
+   vs "Gemini 4 Argon for developers"). Event verbs are stopwords, so
+   "releases" against "launches" is not a difference.
+3. **No version conflict.** If both titles name versions and the versions
+   differ, they are two releases — "Gemini 4 Neon" and "Gemini 5 Neon" never
+   merge, however alike they read. A number only counts as a version when it
+   sits inside a name, so a post mentioning "3.4B parameters" is not claiming a
+   release.
+4. **Same content hash**, within the day: title plus text, normalised. The same
+   article syndicated at two addresses is one story.
+5. **Same headline up to a name**: one title's content words sit inside the
+   other's ("Inkling 2 Mini" inside the blog's full headline), or the titles
+   share ≥ 70% of their words.
+6. **A shared name**, when the name is the whole name in both titles and the
+   titles agree on more than it (≥ 25% word overlap). "Gemini 4 Argon" merges
+   its launch with its coverage; "Hugging Face" alone never merges two
+   Hugging Face posts.
+7. **A shared rare phrase**: an adjacent pair of words that only a few of the
+   day's items used ("lead azide"), together with at least three shared rare
+   words. This is what catches sentence-case headlines, which never yield a
+   capitalised name.
+
+Merges 4–7 require the two items to be published within 24 hours of each other.
+A new item must relate to a publication already in the cluster, not to whatever
+aggregator chain reached it, so a chain cannot bridge two unrelated events.
 
 The story's key is its primary item's canonical URL. The primary is the
-publication, never the aggregator; among publications, the earliest. Roles:
-`primary` (printed link), `discussion` (aggregator thread), `duplicate`.
+publication, never an aggregator; among publications, the earliest. An
+aggregator that links out (HN) beats one that links to itself (a social
+permalink). Roles: `primary` (the printed link), `discussion` (an aggregator
+thread or a social post about it).
 
 The pool is rebuilt, not appended to: a rebuild replaces the day's stories, and
-running it twice over the same items produces the same keys and members.
+running it twice over the same items produces the same keys and members. An
+empty pool is not a rebuild — a past day whose items have since been re-fetched
+keeps the stories it has.
 
 ## Consequences
 
 - A re-run is idempotent and inspectable: the same pool gives the same stories,
   and `/pool` shows why each item landed where it did.
-- Thresholds are tuning knobs, and they are cheap now: the phase-3 review gate
-  hand-checks real clusters and moves them.
-- False negatives are visible as duplicates on the page; false positives as two
-  unrelated headlines in one story. Both are inspected on `/pool`, not guessed
-  at.
-- A two-word company name cannot merge stories, so a busy launch day by one
-  vendor stays several entries — until phase 4's editor judges them.
-- No embeddings means no per-item cost, no model version to pin, and no
-  network in `mix test`.
+- Rarity is read off the day's pool, so clustering is deterministic for a
+  given pool but a very small pool has no common words; the tests use a pool
+  with filler stories for that reason.
+- The pool holds the week up to the edition day: 118 items became 111 stories
+  on 22 November, with five genuine multi-source clusters (Inkling 2 Mini,
+  GPT-6.2 Astra and Sol, the lead azide delay, the Lean verification, Datasette
+  Lite). Under-merging is deliberate at the margins: two rows for one event is
+  embarrassing, one story for two events is a wrong paper.
+- **Editorial copy never lives on `stories`.** A rebuild deletes stale stories
+  and rewrites headlines and members, so phase 4 writes dek, summary, quote and
+  placement into the edition tables (`edition_entries`), which the clusterer
+  never touches.
+- **A past day is replayed from its artifact, not recomputed.** `raw_items` is
+  current state; phase 5's artifact freezes the pool, its members and their
+  roles, and reproducibility replays that. `Pool.rebuild/2` refuses to write an
+  empty pool rather than erasing a day.

@@ -26,7 +26,6 @@ defmodule FrontierWeb.PoolControllerTest do
 
       assert html =~ "primary"
       assert html =~ "discussion"
-      assert html =~ "duplicate"
       assert html =~ "rss:huggingface"
       assert html =~ "hn"
       assert html =~ "bsky"
@@ -39,7 +38,6 @@ defmodule FrontierWeb.PoolControllerTest do
 
       assert hd(items) =~ "primary"
       assert Enum.join(tl(items), " ") =~ "discussion"
-      assert Enum.join(tl(items), " ") =~ "duplicate"
     end
 
     test "shows the cluster key, so a bad merge is traceable", %{conn: conn} do

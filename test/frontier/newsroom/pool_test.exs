@@ -35,7 +35,7 @@ defmodule Frontier.Newsroom.PoolTest do
       assert roles == %{
                "rss:huggingface" => "primary",
                "hn" => "discussion",
-               "bsky" => "duplicate"
+               "bsky" => "discussion"
              }
     end
 
@@ -112,24 +112,53 @@ defmodule Frontier.Newsroom.PoolTest do
       assert Repo.aggregate(StoryItem, :count) == 2
     end
 
-    test "a story whose primary moves is rewritten in place", %{items: items} do
+    test "a story whose primary moves is rewritten under the new primary", %{items: items} do
       Pool.rebuild(@day, items: items)
       story = Repo.one!(Story)
       assert story.canonical_url == "https://huggingface.co/blog/inkling2mini"
 
-      # The HN submission disappears; the social post is the earliest left.
-      hn_item = Repo.get_by!(RawItem, source: "hn")
-      Repo.delete_all(from item in StoryItem, where: item.raw_item_id == ^hn_item.id)
-      Repo.delete!(hn_item)
+      # The blog drops out of its feed; the launch is still carried by HN and
+      # the social post, so the story survives under a new key and link.
+      blog_item = Repo.get_by!(RawItem, source: "rss:huggingface")
+      Repo.delete_all(from item in StoryItem, where: item.raw_item_id == ^blog_item.id)
+      Repo.delete!(blog_item)
 
-      remaining = Repo.all(RawItem) |> Enum.reject(&(&1.source == "hn"))
+      remaining = Repo.all(RawItem) |> Enum.reject(&(&1.source == "rss:huggingface"))
 
       assert %{stories: 1} = Pool.rebuild(@day, items: remaining)
 
       updated = Repo.one!(Story)
       assert updated.item_count == 2
-      assert updated.cluster_key == "url:https://huggingface.co/blog/inkling2mini"
+      assert updated.cluster_key == "url:https://thinkingmachines.ai/news/inkling-2-mini"
       assert Repo.aggregate(StoryItem, :count) == 2
+    end
+  end
+
+  describe "rebuild safety" do
+    test "an empty pool leaves the day's stories standing" do
+      day = @day
+      items = ClusteringFixtures.seed!(day)
+      Pool.rebuild(day, items: items)
+      assert Repo.aggregate(Story, :count) == 1
+
+      # A past day whose items have since been re-fetched reads as empty; that
+      # must not wipe the stories it already has.
+      assert %{stories: 0, items: 0} = Pool.rebuild(day, items: [])
+      assert Repo.aggregate(Story, :count) == 1
+      assert Repo.aggregate(StoryItem, :count) == 3
+    end
+
+    test "each rebuild is recorded as a run" do
+      items = ClusteringFixtures.seed!(@day)
+      Pool.rebuild(@day, items: items)
+
+      run = Repo.get_by!(Run, stage: "cluster", source: "pool")
+      assert run.edition_day == @day
+      assert run.status == "ok"
+      assert run.fetched == 3
+      assert run.inserted == 1
+      assert run.updated == 2
+      assert run.duration_ms >= 0
     end
   end
 
@@ -183,6 +212,7 @@ defmodule Frontier.Newsroom.PoolTest do
           edition_day: @day,
           status: "ok",
           fetched: 1,
+          inserted: 1,
           inserted_at: DateTime.utc_now()
         })
         |> Repo.insert!()

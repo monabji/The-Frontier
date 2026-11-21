@@ -91,9 +91,13 @@ defmodule Frontier.Sources.Canonical do
   dedupe is on the canonical URL.
   """
   @spec content_hash(Item.t()) :: String.t()
-  def content_hash(%Item{} = item) do
+  def content_hash(%Item{} = item), do: utterance_hash(item.title, item.text)
+
+  @doc "The fingerprint of a title and a body, independent of address."
+  @spec utterance_hash(String.t() | nil, String.t() | nil) :: String.t()
+  def utterance_hash(title, text) do
     payload =
-      [item.title, item.text]
+      [title, text]
       |> Enum.map(&utterance/1)
       |> Enum.join("\n")
 
@@ -172,7 +176,7 @@ defmodule Frontier.Sources.Canonical do
   defp query(raw) do
     kept =
       raw
-      |> URI.query_decoder()
+      |> decode_query()
       |> Enum.reject(fn {key, _value} -> tracking?(key) end)
       |> Enum.sort()
 
@@ -180,6 +184,14 @@ defmodule Frontier.Sources.Canonical do
       [] -> nil
       pairs -> URI.encode_query(pairs)
     end
+  end
+
+  # A malformed query is not worth failing a whole source over; the URL keeps
+  # its meaning without it.
+  defp decode_query(raw) do
+    URI.query_decoder(raw) |> Enum.to_list()
+  rescue
+    _ -> []
   end
 
   defp tracking?(key) do

@@ -1,69 +1,81 @@
 defmodule FrontierWeb.PageControllerTest do
   use FrontierWeb.ConnCase
 
-  alias Frontier.Newsroom.Dateline
+  alias Frontier.ClusteringFixtures
+  alias Frontier.Newsroom.{Dateline, Pool}
   alias Frontier.Sources
-  alias Frontier.Sources.{HN, RSS}
-
-  # The page prints an edition day, and only keeps a week. These adapters serve
-  # the recorded payloads with their dates moved to "just now", so the tests are
-  # about the page and not about the day they happen to run on.
-  defmodule HNFixture do
-    @behaviour Frontier.Sources.Adapter
-    def key, do: "hn"
-    def label, do: "Hacker News"
-    def fetch(_opts), do: {:ok, :fixture}
-
-    def normalize(_payload) do
-      {:ok, items} = HN.normalize(Frontier.Fixtures.hn_front_page())
-      {:ok, Enum.map(items, &%{&1 | published_at: recent()})}
-    end
-
-    def recent, do: DateTime.utc_now() |> DateTime.truncate(:second)
-  end
-
-  defmodule BlogFixture do
-    @behaviour Frontier.Sources.Adapter
-    def key, do: "rss:test"
-    def label, do: "Test Blog"
-    def fetch(_opts), do: {:ok, :fixture}
-
-    def normalize(_payload) do
-      {:ok, items} = RSS.normalize(Frontier.Fixtures.rss_fixture("google-ai.xml"))
-      {:ok, Enum.map(items, &%{&1 | published_at: HNFixture.recent()})}
-    end
-  end
 
   setup do
-    reports = Sources.run(adapters: [HNFixture, BlogFixture], day: Dateline.edition_date())
-    assert [_hn, _blog] = reports
+    day = Dateline.edition_date()
+    items = ClusteringFixtures.seed!(day)
+    Pool.rebuild(day, items: items)
 
-    %{items: Sources.front_page_items(day: Dateline.edition_date())}
+    %{day: day, stories: Pool.paper_stories(day: day)}
   end
 
-  describe "GET / with today's fetch stored" do
-    test "prints the front page", %{conn: conn, items: items} do
+  describe "GET / with a clustered pool" do
+    test "prints the front page", %{conn: conn, stories: stories} do
       html = get(conn, ~p"/") |> html_response(200)
 
       assert html =~ "The Frontier"
       assert html =~ "Front Page"
-      assert html =~ "2 sources"
-      assert items != []
+      assert html =~ "1 story"
+      assert html =~ "3 sources"
+      assert length(stories) == 1
     end
 
-    test "has a heading outline: paper, section, stories", %{conn: conn} do
+    test "prints one story for the launch, not its three items", %{conn: conn} do
+      html = get(conn, ~p"/") |> html_response(200)
+
+      headlines =
+        html
+        |> LazyHTML.from_document()
+        |> LazyHTML.query("article h3 a, ol.items h3 a")
+
+      assert headlines |> LazyHTML.attribute("href") |> length() == 1
+
+      assert headlines
+             |> LazyHTML.text()
+             |> String.contains?("Welcome Inkling 2 Mini")
+    end
+
+    test "sends the reader to the publication, not the aggregator", %{conn: conn} do
+      html = get(conn, ~p"/") |> html_response(200)
+
+      [headline_link] =
+        html
+        |> LazyHTML.from_document()
+        |> LazyHTML.query("h3 a")
+        |> LazyHTML.attribute("href")
+
+      assert headline_link == "https://huggingface.co/blog/inkling2mini"
+    end
+
+    test "prints the related discussion beside it", %{conn: conn} do
+      html = get(conn, ~p"/") |> html_response(200)
+
+      assert html =~ ~s(href="https://news.ycombinator.com/item?id=50581260")
+      assert html =~ "Discussion"
+    end
+
+    test "has a heading outline: paper, section, story", %{conn: conn} do
       html = get(conn, ~p"/") |> html_response(200)
       doc = LazyHTML.from_document(html)
 
       assert doc |> LazyHTML.query("h1") |> LazyHTML.text() |> String.contains?("The Frontier")
       assert doc |> LazyHTML.query("h2") |> LazyHTML.text() |> String.contains?("Front Page")
-      stories = doc |> LazyHTML.query("article, ol.items > li") |> count()
-      headlines = doc |> LazyHTML.query("h3") |> count()
 
-      assert headlines == stories
+      assert doc |> LazyHTML.query("h3") |> LazyHTML.attribute("class") |> length() == 1
     end
 
-    test "gives every story on the page a working link", %{conn: conn, items: items} do
+    test "the date line is the edition date in IST", %{conn: conn, day: day} do
+      html = get(conn, ~p"/") |> html_response(200)
+
+      assert html =~ Dateline.format(day)
+      assert html =~ ~s(datetime="#{Date.to_iso8601(day)}")
+    end
+
+    test "no story's link appears twice", %{conn: conn} do
       html = get(conn, ~p"/") |> html_response(200)
 
       links =
@@ -72,63 +84,13 @@ defmodule FrontierWeb.PageControllerTest do
         |> LazyHTML.query("article h3 a, ol.items h3 a")
         |> LazyHTML.attribute("href")
 
-      assert length(links) == length(items)
-
-      for item <- items do
-        assert item.url in links, "missing link for #{item.title}"
-      end
-    end
-
-    test "prints each article once, however many sources carried it", %{conn: conn} do
-      html = get(conn, ~p"/") |> html_response(200)
-
-      hrefs =
-        html
-        |> LazyHTML.from_document()
-        |> LazyHTML.query("article h3 a, ol.items h3 a")
-        |> LazyHTML.attribute("href")
-
-      assert length(hrefs) == length(Enum.uniq(hrefs))
-    end
-
-    test "gives every story a source line, in IST", %{conn: conn, items: items} do
-      html = get(conn, ~p"/") |> html_response(200)
-
-      doc = LazyHTML.from_document(html)
-      sources = doc |> LazyHTML.query(".item-source__host") |> LazyHTML.text()
-
-      assert doc |> LazyHTML.query(".item-source__host") |> count() == length(items)
-      assert sources =~ "math216.wordpress.com"
-
-      lead = hd(items)
-
-      assert html =~
-               ~s(datetime="#{DateTime.to_iso8601(lead.published_at)}")
-
-      assert html =~ Dateline.format_short(lead.published_at)
-    end
-
-    test "sends the reader to the discussion too", %{conn: conn, items: items} do
-      html = get(conn, ~p"/") |> html_response(200)
-
-      lead = Enum.find(items, & &1.discussion_url)
-
-      assert html =~ ~s(href="#{lead.discussion_url}")
-    end
-
-    test "the date line is the edition date in IST", %{conn: conn} do
-      html = get(conn, ~p"/") |> html_response(200)
-
-      date = Dateline.edition_date()
-      assert html =~ Dateline.format(date)
-      assert html =~ ~s(datetime="#{Date.to_iso8601(date)}")
+      assert length(links) == length(Enum.uniq(links))
     end
   end
 
-  describe "GET / before the press has run" do
+  describe "GET / before the press has clustered" do
     setup do
-      Frontier.Repo.delete_all(Frontier.Sources.RawItem)
-      Frontier.Repo.delete_all(Frontier.Sources.Run)
+      Frontier.Repo.delete_all(Frontier.Newsroom.Story)
       :ok
     end
 
@@ -137,10 +99,37 @@ defmodule FrontierWeb.PageControllerTest do
 
       assert html =~ "No stories yet"
       assert html =~ "mix frontier.fetch"
+      assert html =~ "mix frontier.cluster"
     end
   end
 
-  defp count(nodes), do: nodes |> LazyHTML.attribute("class") |> length()
+  test "GET / shows the last edition before the day's first fetch", %{conn: conn} do
+    yesterday = Date.add(Dateline.edition_date(), -1)
+    Frontier.Repo.delete_all(Frontier.Newsroom.Story)
+
+    items = ClusteringFixtures.seed!(yesterday)
+    Pool.rebuild(yesterday, items: items)
+
+    # A successful run on the old day, none today: the paper prints the old
+    # edition with its own date rather than an empty page until 05:15.
+    %Frontier.Sources.Run{}
+    |> Frontier.Sources.Run.changeset(%{
+      stage: "fetch",
+      source: "hn",
+      edition_day: yesterday,
+      status: "ok",
+      fetched: 1,
+      inserted: 1,
+      inserted_at: DateTime.utc_now()
+    })
+    |> Frontier.Repo.insert!()
+
+    html = get(conn, ~p"/") |> html_response(200)
+
+    assert Sources.current_edition_day() == yesterday
+    assert html =~ Dateline.format(yesterday)
+    assert html =~ "Welcome Inkling 2 Mini"
+  end
 
   test "the page preloads both faces and loads the paper's stylesheet", %{conn: conn} do
     html = get(conn, ~p"/") |> html_response(200)

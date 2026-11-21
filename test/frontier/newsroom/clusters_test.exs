@@ -29,10 +29,12 @@ defmodule Frontier.Newsroom.ClustersTest do
           {item.source, item.role}
         end)
 
+      # The blog is where the story was published; HN and Bluesky carried the
+      # conversation about it, so both are discussion.
       assert roles == %{
                "rss:huggingface" => :primary,
                "hn" => :discussion,
-               "bsky" => :duplicate
+               "bsky" => :discussion
              }
     end
   end
@@ -90,6 +92,88 @@ defmodule Frontier.Newsroom.ClustersTest do
       ]
 
       assert [_, _] = Clusters.cluster(items)
+    end
+
+    test "two versions of the same line are two stories, however alike they read" do
+      items = [
+        item(
+          "hn",
+          "1",
+          "Gemini 4 Neon released",
+          "https://example.com/4",
+          ~U[2026-11-20 10:00:00Z]
+        ),
+        item(
+          "hn",
+          "2",
+          "Gemini 5 Neon released",
+          "https://example.com/5",
+          ~U[2026-11-20 11:00:00Z]
+        )
+      ]
+
+      assert [_, _] = Clusters.cluster(items)
+    end
+
+    test "parallel releases worded the same way are two stories" do
+      items = [
+        item(
+          "hn",
+          "1",
+          "Google announces Gemini 4 Neon for developers",
+          "https://example.com/neon",
+          ~U[2026-11-20 10:00:00Z]
+        ),
+        item(
+          "hn",
+          "2",
+          "Google announces Gemini 4 Argon for developers",
+          "https://example.com/argon",
+          ~U[2026-11-20 11:00:00Z]
+        )
+      ]
+
+      assert [_, _] = Clusters.cluster(items)
+    end
+
+    test "the same event in sentence case, with no capitalised name, is one story" do
+      items = [
+        item(
+          "hn",
+          "1",
+          "Detonating a pile of lead azide",
+          "https://example.com/lead",
+          ~U[2026-11-21 13:23:00Z]
+        ),
+        item(
+          "rss:arstechnica",
+          "2",
+          "Army delays detonating \"catastrophically hazardous\" lead azide amid fear, anger",
+          "https://example.com/delay",
+          ~U[2026-11-20 19:21:00Z]
+        )
+      ]
+
+      assert together?(
+               with_filler(items),
+               "Detonating a pile of lead azide",
+               "Army delays detonating \"catastrophically hazardous\" lead azide amid fear, anger"
+             )
+    end
+
+    test "a hyphenated name is the same product" do
+      items = [
+        item("hn", "1", "Inkling 2 Mini", "https://example.com/one", ~U[2026-11-20 10:00:00Z]),
+        item(
+          "hn",
+          "2",
+          "Inkling-2-Mini in 5.4 GB memory",
+          "https://example.com/two",
+          ~U[2026-11-20 18:00:00Z]
+        )
+      ]
+
+      assert [_story] = Clusters.cluster(items)
     end
 
     test "two versions of a name are two stories" do
@@ -209,6 +293,34 @@ defmodule Frontier.Newsroom.ClustersTest do
       assert clustered |> Enum.map(& &1.external_id) |> Enum.sort() ==
                launch |> Enum.map(& &1["external_id"]) |> Enum.sort()
     end
+  end
+
+  defp together?(pool, title_a, title_b) do
+    pool
+    |> Clusters.cluster()
+    |> Enum.any?(fn story ->
+      titles = Enum.map(story.items, & &1.title)
+      title_a in titles and title_b in titles
+    end)
+  end
+
+  # A day's pool has more than two stories; rarity is read off it, and a pool
+  # of two has no common words.
+  defp with_filler(items) do
+    fillers =
+      ~w(rust gardening cooking awards cycling traffic weather music)
+      |> Enum.with_index(1)
+      |> Enum.map(fn {subject, n} ->
+        item(
+          "rss:filler-#{n}",
+          "filler-#{n}",
+          "Notes on #{subject} and its practitioners",
+          "https://example.com/filler-#{n}",
+          ~U[2026-11-20 08:00:00Z]
+        )
+      end)
+
+    items ++ fillers
   end
 
   defp launch do

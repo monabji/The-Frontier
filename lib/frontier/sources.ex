@@ -46,8 +46,16 @@ defmodule Frontier.Sources do
   # news plus the weekly blog post, and nothing older.
   @max_age_days 7
 
-  # A source that only points at other sources' work is not the story's home.
-  @aggregators ["hn"]
+  # A source that only points at other sources' work is not the story's home:
+  # an aggregator links out, a social feed talks about it.
+  @aggregators ["hn", "bsky"]
+
+  @doc """
+  Whether a source is commentary on other people's work rather than a place a
+  story was published. Aggregators never print as a story's link.
+  """
+  @spec aggregator?(String.t()) :: boolean()
+  def aggregator?(source), do: source in @aggregators
 
   @type report :: %{
           source: String.t(),
@@ -229,22 +237,9 @@ defmodule Frontier.Sources do
 
   defp pool(day, opts) do
     limit = Keyword.get(opts, :limit, @pool_size)
-    {day_start, _day_end} = Dateline.day_bounds(day)
-    cutoff = DateTime.add(day_start, -@max_age_days * 86_400, :second)
-    horizon = DateTime.add(day_start, 86_400, :second)
 
     day
     |> day_items_for()
-    |> Enum.filter(fn item ->
-      case item.published_at do
-        nil ->
-          true
-
-        published ->
-          DateTime.compare(published, cutoff) != :lt and
-            DateTime.compare(published, horizon) != :gt
-      end
-    end)
     |> Enum.take(limit)
   end
 
@@ -267,19 +262,23 @@ defmodule Frontier.Sources do
       from run in Run,
         where:
           run.stage == ^@stage and run.edition_day == ^day and run.status == "ok" and
-            run.fetched > 0
+            run.inserted + run.updated > 0
     )
   end
 
   defp latest_edition_day do
     Repo.one(
       from run in Run,
-        where: run.stage == ^@stage and run.status == "ok" and run.fetched > 0,
+        where: run.stage == ^@stage and run.status == "ok" and run.inserted + run.updated > 0,
         select: max(run.edition_day)
     )
   end
 
   defp day_items_for(day) do
+    {day_start, _day_end} = Dateline.day_bounds(day)
+    cutoff = DateTime.add(day_start, -@max_age_days * 86_400, :second)
+    horizon = DateTime.add(day_start, 86_400, :second)
+
     case latest_run_ids(day) do
       [] ->
         []
@@ -287,7 +286,10 @@ defmodule Frontier.Sources do
       run_ids ->
         Repo.all(
           from item in RawItem,
-            where: item.run_id in ^run_ids and item.kind != "job"
+            where:
+              item.run_id in ^run_ids and item.kind != "job" and
+                (is_nil(item.published_at) or
+                   (item.published_at >= ^cutoff and item.published_at <= ^horizon))
         )
         |> Enum.sort_by(fn item ->
           {item.position || 9_999, source_rank(item.source), item.id}
@@ -326,14 +328,14 @@ defmodule Frontier.Sources do
     end)
   end
 
-  defp home_rank(item), do: if(item.source in @aggregators, do: 1, else: 0)
+  defp home_rank(item), do: if(aggregator?(item.source), do: 1, else: 0)
 
   defp latest_run_id(source, day) do
     Repo.one(
       from run in Run,
         where:
           run.stage == ^@stage and run.source == ^source and run.edition_day == ^day and
-            run.status == "ok" and run.fetched > 0,
+            run.status == "ok" and run.inserted + run.updated > 0,
         select: max(run.id)
     )
   end
@@ -343,7 +345,7 @@ defmodule Frontier.Sources do
       from run in Run,
         where:
           run.stage == ^@stage and run.edition_day == ^day and run.status == "ok" and
-            run.fetched > 0,
+            run.inserted + run.updated > 0,
         group_by: run.source,
         select: max(run.id)
     )

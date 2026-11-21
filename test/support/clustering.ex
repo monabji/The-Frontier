@@ -39,6 +39,7 @@ defmodule Frontier.ClusteringFixtures do
       external_id: entry["external_id"],
       title: entry["title"],
       url: entry["url"],
+      discussion_url: entry["discussion_url"],
       kind: :post,
       score: entry["score"],
       published_at: parse(entry["published_at"])

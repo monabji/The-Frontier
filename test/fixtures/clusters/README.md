@@ -7,6 +7,6 @@ pins the roles.
 
 The HN and blog entries are modelled on the real Inkling 2 Mini launch, which
 appears in the recorded HN and Hugging Face payloads. The social entry is the
-shape a Bluesky adapter will produce — there is no Bluesky adapter yet
-(`docs/PLAN.md` puts it with phase 3's cluster inputs), so it is written here
-rather than recorded.
+shape the Bluesky adapter produces (see `test/fixtures/bsky/`), written out
+here so one file carries the whole event: a permalink as the item's URL, and
+the same permalink as its discussion.

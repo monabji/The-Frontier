@@ -26,6 +26,7 @@ See `docs/adr/` for the decisions worth remembering and `GLOSSARY.md` for vocabu
 ## Architecture
 
 - **The edition is an immutable artifact.** The daily job builds a JSON + HTML bundle, content-addressed and stored. The web app renders it; archives and rollbacks are storage lookups.
+- **A printed day is frozen, not recomputed.** `raw_items` is current state and re-fetching moves it; a pool is rebuilt only for the current day. Phase 5's artifact freezes the pool, its members and roles, and a past day is replayed from the artifact (ADR 0004, 0005).
 - **The page is a projection of the latest run.** Each source's most recent successful fetch is the pool the page reads (ADR 0004); `raw_items` is current state, and history lives in `runs` and, later, in edition artifacts. Late Wire appends entries; nothing printed is mutated.
 - **Taste is a document, not a model.** Profiles are versioned JSON passed to the editor as context. No embeddings, no training.
 - **Sources are adapters.** Each adapter implements `fetch/1 → normalize/1` with cluster hints. X, Bluesky, HN, RSS and arXiv are peers.
@@ -40,7 +41,7 @@ See `docs/adr/` for the decisions worth remembering and `GLOSSARY.md` for vocabu
 | `stories` | clustered events: edition day, cluster key, headline, canonical/primary URL, item and source counts, first/last published. Dek, summary, quote and section arrive with the editor |
 | `story_items` | story ↔ raw item membership and role (primary, discussion, duplicate) |
 | `editions` | day, published time, status (draft/published/late/frozen), artifact path + hash, desk note, stats |
-| `edition_entries` | edition ↔ story placement: section, position, kind (lead/standard/ticker/quote), origin (edition/late/wire) |
+| `edition_entries` | edition ↔ story placement: section, position, kind (lead/standard/ticker/quote), origin (edition/late/wire), and the editor's copy (dek, summary, quote, section). Editorial copy lives here, never on `stories`: the clusterer rewrites stories on every rebuild |
 | `readers` | signed reader ID, first/last seen |
 | `profiles` | reader ↔ versioned profile document |
 | `profile_events` | append-only chips, thumb ups/downs, edits |

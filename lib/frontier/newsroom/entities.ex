@@ -37,6 +37,19 @@ defmodule Frontier.Newsroom.Entities do
   def from_title(_title), do: []
 
   @doc """
+  A name's comparison key: the same name however it is punctuated.
+
+  "Inkling-2-Mini", "Inkling 2 Mini" and "Inkling.2.Mini" are one product, and a
+  feed that hyphenates it must not create a second story.
+  """
+  @spec key(String.t()) :: String.t()
+  def key(name) do
+    name
+    |> String.downcase()
+    |> String.replace(~r/[^a-z0-9]+/u, "")
+  end
+
+  @doc """
   Whether a name is specific enough to be a clustering signal.
   """
   @spec distinctive?(String.t()) :: boolean()

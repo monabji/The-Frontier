@@ -9,9 +9,10 @@ defmodule FrontierWeb.PoolController do
   use FrontierWeb, :controller
 
   alias Frontier.Newsroom.{Dateline, Pool}
+  alias Frontier.Sources
 
   def index(conn, _params) do
-    day = Dateline.edition_date()
+    day = Sources.current_edition_day()
     stories = Pool.list_stories(day: day)
 
     conn

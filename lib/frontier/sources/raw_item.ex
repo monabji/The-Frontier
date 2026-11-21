@@ -9,7 +9,8 @@ defmodule Frontier.Sources.RawItem do
 
   `canonical_url` is the article's identity across sources — an HN submission
   and the blog post it points at reduce to the same string — and
-  `content_hash` fingerprints the URL plus title. `edition_day` is the IST day
+  `content_hash` fingerprints what the item says (title plus text), not where
+  it lives, so a syndicated copy hashes the same. `edition_day` is the IST day
   the row was *last seen* on, which is the day whose page it belongs to.
 
   ## What `fetched_at` means
