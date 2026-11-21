@@ -1,0 +1,10 @@
+<div class="sheet">
+  <PaperComponents.masthead date={@date} edition={@edition} />
+
+  <main class="page">
+    <PaperComponents.section_band section={@edition.section} kicker={@edition.kicker} />
+    <PaperComponents.lead_story story={@edition.story} />
+  </main>
+
+  <PaperComponents.colophon edition={@edition} />
+</div>

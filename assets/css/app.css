@@ -1,0 +1,357 @@
+/*
+ * The Frontier — the paper's stylesheet.
+ *
+ * Two faces, one stock, three rules. Everything on this page is type or a
+ * hairline: no images, no cards, no shadows, no rounded corners.
+ *
+ *   Display  Fraunces   — masthead, headlines, drop cap
+ *   Text     Newsreader — dek, body, quotes, letterspaced datelines
+ *
+ * The display face is named here, in `--font-display`, and nowhere else.
+ */
+
+@font-face {
+  font-family: "Newsreader";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("/fonts/newsreader-latin.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Newsreader";
+  font-style: italic;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("/fonts/newsreader-latin-italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/fraunces-latin.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Fraunces";
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/fraunces-latin-italic.woff2") format("woff2");
+}
+
+:root {
+  color-scheme: light;
+
+  /* Newsprint stock, greyer and duller than a magazine's cream. */
+  --paper: #e3dfd4;
+  --ink: #191712;
+  --ink-soft: #46423a;
+  --ink-faint: #6d6859;
+  --press-red: #8a3423;
+
+  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --font-text: "Newsreader", "Iowan Old Style", Georgia, serif;
+
+  /* A single reading measure: 60–70 characters of Newsreader at 18px. */
+  --measure: 34rem;
+  --sheet: 58rem;
+
+  --text-xs: 0.6875rem;
+  --text-sm: 0.75rem;
+  --text-body: 1.125rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--paper);
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: var(--text-body);
+  line-height: 1.6;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.16em;
+  text-decoration-color: var(--ink-faint);
+}
+
+a:hover {
+  color: var(--press-red);
+  text-decoration-color: currentColor;
+}
+
+:focus-visible {
+  outline: 2px solid var(--press-red);
+  outline-offset: 3px;
+}
+
+/* Letterspaced caps are the paper's only label device, and labels here mean
+   something: edition number, section, source. */
+.smallcaps {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.sheet {
+  max-width: var(--sheet);
+  margin-inline: auto;
+  padding: 1.4rem 1.25rem 2.25rem;
+}
+
+/* ---------- masthead ---------- */
+
+.masthead {
+  border-top: 3px solid var(--ink);
+  padding-top: 0.65rem;
+}
+
+.flagline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0;
+}
+
+.flagline .smallcaps {
+  color: var(--ink-faint);
+  font-size: var(--text-xs);
+}
+
+.masthead__wordmark {
+  display: block;
+  margin-top: 0.5rem;
+  font-family: var(--font-display);
+  font-size: clamp(2.9rem, 12.6vw, 6rem);
+  font-variation-settings: "SOFT" 40, "WONK" 1;
+  font-weight: 600;
+  line-height: 0.9;
+  letter-spacing: -0.028em;
+  text-align: center;
+  text-decoration: none;
+  text-wrap: balance;
+}
+
+.masthead__wordmark:hover {
+  color: var(--ink);
+}
+
+.masthead__motto {
+  margin: 0.5rem 0 1rem;
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  text-align: center;
+  text-wrap: balance;
+  color: var(--ink-soft);
+}
+
+.dateband {
+  margin: 0;
+  padding: 0.6rem 0 0.55rem;
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+  text-align: center;
+  font-size: var(--text-sm);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+/* ---------- section band ---------- */
+
+.page {
+  display: block;
+}
+
+.section-band {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: var(--measure);
+  margin: 1.35rem auto 0;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--ink);
+}
+
+.section-band__kicker {
+  color: var(--ink-faint);
+  font-size: var(--text-xs);
+}
+
+/* ---------- the lead ---------- */
+
+.lead {
+  max-width: var(--measure);
+  margin: 0 auto;
+}
+
+.lead__headline {
+  margin: 1.15rem 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.1rem, 7.2vw, 3.3rem);
+  font-weight: 600;
+  line-height: 1.02;
+  letter-spacing: -0.016em;
+  text-wrap: balance;
+}
+
+.lead__dek {
+  margin: 0.85rem 0 0;
+  font-size: clamp(1.15rem, 2.6vw, 1.3rem);
+  font-style: italic;
+  line-height: 1.42;
+  text-wrap: pretty;
+  color: var(--ink-soft);
+}
+
+.lead__desk {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1.35rem 0 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--ink);
+}
+
+.lead__desk .smallcaps {
+  font-size: var(--text-xs);
+}
+
+.lead__desk-source {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.55rem;
+}
+
+.lead__body {
+  margin-top: 1.2rem;
+}
+
+.lead__paragraph {
+  margin: 0 0 0.95rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.lead__paragraph:last-child {
+  margin-bottom: 0;
+}
+
+/* The one colour on the page, spent on the lead's drop cap. Its box is sized
+   to cover exactly two lines of body text so the third line starts flush. */
+.lead__body > .lead__paragraph:first-child::first-letter {
+  float: left;
+  margin: 0;
+  padding: 0 0.05em 0 0;
+  font-family: var(--font-display);
+  font-size: 4.35em;
+  font-weight: 600;
+  line-height: 0.7;
+  color: var(--press-red);
+}
+
+.source-quote {
+  margin: 1.9rem 0 0;
+  padding: 1.05rem 0;
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+}
+
+.source-quote__text {
+  margin: 0;
+  font-size: clamp(1.2rem, 3vw, 1.4rem);
+  font-style: italic;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+/* Drawn by the stylesheet so the quote in the markup stays verbatim. */
+.source-quote__text::before {
+  content: "\201C";
+  padding-right: 0.04em;
+  font-family: var(--font-display);
+  font-size: 1.3em;
+  line-height: 0;
+  vertical-align: -0.1em;
+}
+
+.source-quote__credit {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.source-quote__credit .smallcaps {
+  font-size: var(--text-xs);
+}
+
+/* ---------- colophon ---------- */
+
+.colophon {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.35rem 1.5rem;
+  margin-top: 2.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.colophon__line {
+  margin: 0;
+}
+
+.colophon__line--quiet {
+  color: var(--ink-faint);
+}
+
+/* ---------- wider than a folded sheet ---------- */
+
+@media (min-width: 44rem) {
+  .sheet {
+    padding: 2.25rem 2.5rem 2.75rem;
+  }
+
+  .masthead__wordmark {
+    margin-top: 0.75rem;
+  }
+
+  .masthead__motto {
+    margin-bottom: 1.2rem;
+  }
+
+  .section-band {
+    margin-top: 1.75rem;
+  }
+
+  .lead__headline {
+    margin-top: 1.35rem;
+  }
+}

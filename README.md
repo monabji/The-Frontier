@@ -11,4 +11,15 @@ A daily newspaper for AI and tech. One dated edition each morning, edited from a
 
 ## Status
 
-Greenfield. v1 is not built yet — the plan, decisions and build order live in [docs/PLAN.md](docs/PLAN.md).
+Phase 0 — the press is installed. A Phoenix app on SQLite with Oban configured
+serves one hardcoded story in the paper's real type: masthead, date line, lead,
+source quote, readable at 390px and on a desktop. No sources, no editor, no
+archive yet.
+
+```bash
+mise install
+mix setup
+mix phx.server   # http://localhost:4000
+```
+
+The paper's face is decided in [docs/DESIGN.md](docs/DESIGN.md).
