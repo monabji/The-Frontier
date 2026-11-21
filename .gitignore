@@ -1,6 +1,7 @@
 # Elixir / Phoenix
 /_build/
 /cover/
+/deps
 /deps/
 /doc/
 /.fetch
