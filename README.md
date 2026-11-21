@@ -5,6 +5,7 @@
 A daily newspaper for AI and tech. One dated edition each morning, edited from a shared corpus, finite by design, free to read, archived forever.
 
 - [Plan](docs/PLAN.md)
+- [Phases](PHASES.md)
 - [Glossary](GLOSSARY.md)
 - [Decisions](docs/adr/)
 
