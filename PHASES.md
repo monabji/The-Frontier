@@ -32,7 +32,7 @@ Expensive to change after the fact because other things hang off them: the editi
 
 ## Phase 0 — The press is installed
 
-**Issue:** #2 · **Size:** S
+**Issue:** #14 · **Size:** S
 
 **Goal:** a Phoenix app with SQLite and Oban running locally, showing one hardcoded story in the paper's real typography.
 
