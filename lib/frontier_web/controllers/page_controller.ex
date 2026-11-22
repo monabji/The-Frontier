@@ -6,6 +6,10 @@ defmodule FrontierWeb.PageController do
   alias Frontier.Newsroom.{Dateline, Pool}
   alias Frontier.Sources
 
+  # The two ways to read a printed edition. "reader" is the long-form page the
+  # paper has always served; "broadsheet" is a dense page-one composition.
+  @layouts ~w(reader broadsheet)
+
   @doc """
   The paper's front page.
 
@@ -14,6 +18,8 @@ defmodule FrontierWeb.PageController do
   assembled, the clustered pool is shown so the press is never blank.
   """
   def home(conn, _params) do
+    conn = assign_layout(conn)
+
     case Editions.current() do
       %{artifact: nil} -> render_pool(conn, Sources.current_edition_day())
       %{artifact: artifact, delayed: delayed} -> render_artifact(conn, artifact, delayed)
@@ -22,6 +28,8 @@ defmodule FrontierWeb.PageController do
 
   @doc "A dated edition: `/2026/11/22`."
   def show(conn, %{"year" => year, "month" => month, "day" => day}) do
+    conn = assign_layout(conn)
+
     with {:ok, date} <- date(year, month, day),
          artifact when not is_nil(artifact) <- Editions.artifact(date),
          true <- artifact.status in ["published", "late", "frozen"] do
@@ -69,6 +77,8 @@ defmodule FrontierWeb.PageController do
       delayed: delayed,
       delayed_date: artifact.day,
       noted: conn.params["noted"] == "thumb",
+      paper_layout: conn.assigns.paper_layout,
+      layout_path: conn.request_path,
       thumbs: true,
       csrf_token: get_csrf_token(),
       return_to: conn.request_path
@@ -94,10 +104,30 @@ defmodule FrontierWeb.PageController do
       delayed: false,
       delayed_date: day,
       noted: conn.params["noted"] == "thumb",
+      paper_layout: "reader",
+      layout_path: conn.request_path,
       thumbs: false,
       csrf_token: nil,
       return_to: "/"
     )
+  end
+
+  # A layout is chosen by the tab, remembered in the signed session, and
+  # carried in the URL so a link can point at either view. The pool fallback
+  # gets the same assign, but only a real edition shows the tabs.
+  defp assign_layout(conn) do
+    chosen = conn.params["layout"]
+
+    layout =
+      if chosen in @layouts do
+        chosen
+      else
+        saved = get_session(conn, :paper_layout)
+        if saved in @layouts, do: saved, else: "reader"
+      end
+
+    conn = if chosen in @layouts, do: put_session(conn, :paper_layout, layout), else: conn
+    assign(conn, :paper_layout, layout)
   end
 
   defp date(year, month, day) do

@@ -84,6 +84,7 @@ Fold generation is lazy: on a reader's first page load of the day, the editor bu
 ## Design
 
 - Wordmark + date line, hairline rules, small-caps section kickers, drop cap on the lead.
+- Two server-rendered views under a **Standard | Broadsheet** switch: the long-form reading page and a dense page-one composition. The choice travels in `?layout=` and is remembered in the session; no JavaScript.
 - Body: **Newsreader**. Display: **Fraunces**, settled in phase 0 — the wordmark and headlines are the only place it appears, and it is named once, in `--font-display` (`docs/DESIGN.md`). Datelines/source lines: letterspaced small caps of the text face. No mono by default.
 - Source images only: the publisher's feed media or `og:image`, credited to its host, rendered grayscale, never re-hosted. No stock, no AI illustrations, no placeholder art (ADR 0010).
 - Mobile: single column, larger type, masthead and rules retained — a broadsheet folded, not a web app.

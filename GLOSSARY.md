@@ -17,6 +17,9 @@ Vocabulary used across the codebase, issues and docs. When a term here competes 
 - **Late Wire** — stories added to the current day's edition between 06:00 and 18:00, capped at 3, visibly marked with the time added. Not a second edition.
 - **Quiet day** — an edition with fewer stories than target, labelled honestly in the desk note. Never padded.
 - **Desk note** — the two-sentence "From the desk" opening that reads the day's shape. Machine-written, always labelled as such.
+- **Standard view** — the long-form reading page: the desk note, then every section in paper order with full summaries and quotes. The default view, kept for readers who want to read the paper rather than scan it (`reader` in the URL and session).
+- **Broadsheet view** — the page-one composition: a lead and right rail above a two-column field of sections, with Also Today as a five-column index. It prints the same stories, links and source lines as the Standard view, composed densely (`broadsheet` in the URL and session).
+- **Layout switch** — the Standard | Broadsheet tabs under the date line. The choice travels in `?layout=` and is remembered in the signed session; it is two links, not JavaScript.
 
 ## Editorial
 

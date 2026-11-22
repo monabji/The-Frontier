@@ -1,11 +1,28 @@
-<div class="sheet">
+<div class={"sheet sheet--#{@paper_layout}"}>
   <PaperComponents.masthead date={@date} read_minutes={@edition && @edition.read_minutes} />
+
+  <PaperComponents.layout_tabs
+    :if={@edition}
+    active={@paper_layout}
+    path={@layout_path}
+  />
+
   <PaperComponents.delayed_banner :if={@delayed} date={@delayed_date} />
   <p :if={@noted} class="noted smallcaps">Noted · tomorrow's paper will reflect it</p>
 
-  <main class="page">
+  <main class={"page page--#{@paper_layout}"}>
+    <PaperComponents.broadsheet
+      :if={@edition && @paper_layout == "broadsheet"}
+      edition={@edition}
+      sections={@sections}
+      tickers={@tickers}
+      thumbs={@thumbs}
+      csrf_token={@csrf_token}
+      return_to={@return_to}
+    />
+
     <PaperComponents.edition
-      :if={@edition}
+      :if={@edition && @paper_layout == "reader"}
       edition={@edition}
       sections={@sections}
       tickers={@tickers}

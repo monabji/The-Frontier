@@ -27,7 +27,8 @@ defmodule FrontierWeb.ArtifactHTML do
       date: artifact.day,
       edition: edition_view(artifact),
       sections: artifact.sections,
-      tickers: artifact.also_today
+      tickers: artifact.also_today,
+      paper_layout: "reader"
     }
 
     __MODULE__

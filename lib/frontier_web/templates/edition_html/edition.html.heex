@@ -24,11 +24,23 @@
     <link rel="stylesheet" href="/assets/css/app.css" />
   </head>
   <body>
-    <div class="sheet">
+    <div class={"sheet sheet--#{@paper_layout}"}>
       <PaperComponents.masthead date={@date} read_minutes={@edition.read_minutes} />
 
-      <main class="page">
-        <PaperComponents.edition edition={@edition} sections={@sections} tickers={@tickers} />
+      <main class={"page page--#{@paper_layout}"}>
+        <PaperComponents.broadsheet
+          :if={@paper_layout == "broadsheet"}
+          edition={@edition}
+          sections={@sections}
+          tickers={@tickers}
+        />
+
+        <PaperComponents.edition
+          :if={@paper_layout == "reader"}
+          edition={@edition}
+          sections={@sections}
+          tickers={@tickers}
+        />
       </main>
 
       <PaperComponents.colophon />

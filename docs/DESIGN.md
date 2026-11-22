@@ -59,24 +59,43 @@ shadows, no cards, no rounded corners, no decorative images. Photographs are the
   not in a badge or a card: the edition promises a length, so the page says it
   once, in the line that already names the edition.
 
-## The broadsheet grid
+## The two views
 
-On a desktop the sheet is 74rem and the page is a 12-column grid. The Front Page
-lead takes eight columns and a text rail of two stories takes four; a four-story
-section runs four across, a three-story section three across, the Long Read is
-full width with three columns of body, and Also Today is a five-column index.
-At tablet width the grid is six columns and the rail falls below the lead; at
-390px everything is one column with the same type, rules and images. Columns are
-narrow on purpose: a story column is measured in words per line, not in cards.
+The paper has two server-rendered compositions, chosen by the **Standard |
+Broadsheet** tabs under the date line. The switch is two links. The chosen view
+travels in `?layout=reader|broadsheet` and is remembered in the signed session,
+so no JavaScript is needed; the stored archive snapshot stays the Standard view.
+
+**Standard** is the long-form reading page. On a desktop the sheet is 74rem and
+the page is a 12-column grid: the Front Page lead takes eight columns with a
+text rail of two stories in four; a four-story section runs four across, a
+three-story section three across; the Long Read is full width with three
+columns of body; Also Today is a five-column index. At tablet width the grid is
+six columns and the rail falls below the lead; at 390px everything is one
+column. Every story carries its summary and verified quote.
+
+**Broadsheet** is page one. The sheet widens to 92rem, the nameplate is larger
+and the date line is closed with a double rule. The Front Page lead takes the
+left eight columns with a two-column body and a 16:9 photograph; the right rail
+carries the desk note, the other two Front Page stories as compact briefs, and
+an "Inside today" index of sections and counts. The six remaining sections flow
+as whole blocks down a two-column field, each block setting its stories in two
+or four narrow columns. The Long Read and Back Page span the full width. Also
+Today closes the page as a five-column index. It prints the same stories and
+source lines as Standard, but keeps pull quotes for the lead and Long Read
+only; density is the point.
+
+At 390px both views fold to one column, keep the masthead, rules and images, and
+remain a paper rather than a web app. No story is printed twice in either view.
 
 ## Photography
 
 A photograph is the source's evidence, not decoration. Use the publisher's own
 feed image or `og:image`, print it grayscale with a slight contrast lift, and
-credit the article's host in a small-caps caption. The lead gets a 21:9 crop,
-standard stories 3:2, the Long Read 21:9. No overlays, no rounded corners, no
-stock, no generated art. A story without an image is set as type; no placeholder
-is invented to fill the hole.
+credit the article's host in a small-caps caption. The lead gets a 21:9 crop in
+Standard and 16:9 in Broadsheet; standard stories 3:2, the Long Read 21:9. No
+overlays, no rounded corners, no stock, no generated art. A story without an
+image is set as type; no placeholder is invented to fill the hole.
 
 ## Rules
 

@@ -41,6 +41,31 @@ defmodule FrontierWeb.PaperComponents do
   end
 
   @doc """
+  The two ways to read the paper, as a pair of tabs that work without
+  JavaScript. The chosen view is carried in the URL and remembered in the
+  session, so a reader can leave and come back to the same page.
+  """
+  attr :active, :string, required: true, doc: ~s("reader" or "broadsheet")
+  attr :path, :string, required: true, doc: "the current paper path, without a query"
+
+  def layout_tabs(assigns) do
+    assigns = assign(assigns, :tabs, [{"reader", "Standard"}, {"broadsheet", "Broadsheet"}])
+
+    ~H"""
+    <nav class="viewswitch" aria-label="Choose layout">
+      <a
+        :for={{id, label} <- @tabs}
+        class="viewswitch__tab"
+        href={layout_url(@path, id)}
+        aria-current={if @active == id, do: "page"}
+      >
+        {label}
+      </a>
+    </nav>
+    """
+  end
+
+  @doc """
   A dated edition: the desk note, every section in paper order, and the Also
   Today strip. This is the page phase 4 makes; phase 5 renders it from an
   artifact instead of the database.
@@ -104,6 +129,160 @@ defmodule FrontierWeb.PaperComponents do
         </li>
       </ol>
     </section>
+    """
+  end
+
+  @doc """
+  The same edition composed as a page one: a lead and a right rail above a
+  mosaic of sections, with Also Today as a five-column index at the foot.
+
+  It prints the same entries and the same source lines as the Standard view. What
+  changes is the composition, not the reporting: the lead owns the page, the
+  rail carries the desk note and the two other front-page stories, and the
+  remaining sections run in narrow newspaper columns.
+  """
+  attr :edition, :any, required: true
+  attr :sections, :list, required: true
+  attr :tickers, :list, required: true
+  attr :thumbs, :boolean, default: false
+  attr :csrf_token, :string, default: nil
+  attr :return_to, :string, default: "/"
+
+  def broadsheet(assigns) do
+    {front, remaining} = split_front(assigns.sections)
+    {lead, front_rest} = split_lead(front)
+
+    assigns =
+      assign(assigns,
+        front: front,
+        remaining: remaining,
+        lead: lead,
+        front_rest: front_rest
+      )
+
+    ~H"""
+    <div class="broadsheet">
+      <section :if={@front != [] || @edition.desk_note} class="broadsheet__front">
+        <.section_band :if={@front != []} section="Front Page" kicker={entry_count(@front)} />
+
+        <div class="broadsheet__front-grid">
+          <article :if={@lead} class="story story--lead broadsheet__lead">
+            <h3 class="story__headline">
+              <a href={@lead.url} rel="noopener noreferrer">{@lead.headline}</a>
+            </h3>
+            <p :if={@lead.dek} class="story__dek">{@lead.dek}</p>
+
+            <.story_image :if={@lead.image_url} entry={@lead} />
+
+            <p class="story__summary">{@lead.summary}</p>
+
+            <blockquote :if={@lead.quote} class="story__quote broadsheet__quote">
+              <p>{@lead.quote}</p>
+              <cite class="smallcaps">
+                {@lead.source_label || Canonical.host(@lead.url)}
+              </cite>
+            </blockquote>
+
+            <.entry_source entry={@lead} />
+            <.thumb_actions
+              :if={@thumbs}
+              entry={@lead}
+              edition_date={@edition.day}
+              csrf_token={@csrf_token}
+              return_to={@return_to}
+            />
+          </article>
+
+          <aside :if={@front_rest != [] || @edition.desk_note} class="broadsheet__rail">
+            <.desk_note :if={@edition.desk_note} note={@edition.desk_note} />
+
+            <article :for={entry <- @front_rest} class="story story--standard broadsheet__brief">
+              <h3 class="story__headline">
+                <a href={entry.url} rel="noopener noreferrer">{entry.headline}</a>
+              </h3>
+              <p :if={entry.dek} class="story__dek">{entry.dek}</p>
+              <p class="story__summary">{entry.summary}</p>
+              <.entry_source entry={entry} />
+              <.thumb_actions
+                :if={@thumbs}
+                entry={entry}
+                edition_date={@edition.day}
+                csrf_token={@csrf_token}
+                return_to={@return_to}
+              />
+            </article>
+
+            <div :if={@remaining != []} class="broadsheet__index">
+              <p class="smallcaps broadsheet__index-label">Inside today</p>
+              <ul class="broadsheet__index-list">
+                <li :for={{section, entries} <- @remaining} class="broadsheet__index-item">
+                  <span class="smallcaps">{section}</span>
+                  <span>{length(entries)}</span>
+                </li>
+                <li :if={@tickers != []} class="broadsheet__index-item">
+                  <span class="smallcaps">Also Today</span>
+                  <span>{length(@tickers)}</span>
+                </li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <div :if={@remaining != []} class="broadsheet__mosaic">
+        <section
+          :for={{section, entries} <- @remaining}
+          class={"broadsheet__block broadsheet__block--" <> slug(section)}
+        >
+          <.section_band section={section} kicker={entry_count(entries)} />
+
+          <div class="broadsheet__block-body">
+            <article :for={entry <- entries} class="story story--standard broadsheet__story">
+              <.story_image :if={entry.image_url} entry={entry} />
+
+              <h3 class="story__headline">
+                <a href={entry.url} rel="noopener noreferrer">{entry.headline}</a>
+              </h3>
+              <p :if={entry.dek} class="story__dek">{entry.dek}</p>
+              <p class="story__summary">{entry.summary}</p>
+
+              <blockquote
+                :if={entry.quote && section == "The Long Read"}
+                class="story__quote broadsheet__quote"
+              >
+                <p>{entry.quote}</p>
+                <cite class="smallcaps">
+                  {entry.source_label || Canonical.host(entry.url)}
+                </cite>
+              </blockquote>
+
+              <.entry_source entry={entry} />
+              <.thumb_actions
+                :if={@thumbs}
+                entry={entry}
+                edition_date={@edition.day}
+                csrf_token={@csrf_token}
+                return_to={@return_to}
+              />
+            </article>
+          </div>
+        </section>
+      </div>
+
+      <section :if={@tickers != []} class="broadsheet__inside">
+        <.section_band section="Also Today" kicker={entry_count(@tickers)} />
+
+        <ol class="ticker broadsheet__ticker">
+          <li :for={entry <- @tickers} class="ticker__item">
+            <p class="ticker__headline">
+              <a href={entry.url} rel="noopener noreferrer">{entry.headline}</a>
+            </p>
+            <p class="ticker__line">{entry.summary}</p>
+            <.entry_source entry={entry} />
+          </li>
+        </ol>
+      </section>
+    </div>
     """
   end
 
@@ -349,6 +528,21 @@ defmodule FrontierWeb.PaperComponents do
     </footer>
     """
   end
+
+  defp layout_url(path, layout) do
+    path = if path in [nil, ""], do: "/", else: path
+    "#{path}?layout=#{layout}"
+  end
+
+  defp split_front(sections) do
+    case Enum.split_with(sections, fn {name, _entries} -> name == "Front Page" end) do
+      {[{_name, entries}], rest} -> {entries, rest}
+      {[], rest} -> {[], rest}
+    end
+  end
+
+  defp split_lead([]), do: {nil, []}
+  defp split_lead([lead | rest]), do: {lead, rest}
 
   defp primary(story) do
     story.story_items
