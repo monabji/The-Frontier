@@ -62,8 +62,7 @@ shadows, no cards, no rounded corners, no decorative images. Photographs are the
 ## The broadsheet grid
 
 On a desktop the sheet is 74rem and the page is a 12-column grid. The Front Page
-lead headline and two ruled text columns take eight columns, its photo sits in
-the right rail, and the other two stories sit beneath it; a four-story
+lead takes eight columns and a text rail of two stories takes four; a four-story
 section runs four across, a three-story section three across, the Long Read is
 full width with three columns of body, and Also Today is a five-column index.
 At tablet width the grid is six columns and the rail falls below the lead; at
