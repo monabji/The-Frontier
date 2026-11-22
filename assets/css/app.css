@@ -961,6 +961,11 @@ a:hover {
   .section > .story:last-of-type::after {
     display: none;
   }
+  /* One full-width rule between the lead and the stories beneath it, instead
+     of a short rule above each of them. */
+  .section--front-page > .story--lead {
+    border-bottom: 1px solid var(--ink-faint);
+  }
   .section--front-page .story--lead {
     grid-column: 1 / -1;
   }
