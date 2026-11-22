@@ -87,6 +87,25 @@ defmodule FrontierWeb.PaperComponents do
   end
 
   @doc """
+  The strip that says the 06:00 edition is late and names what the reader is
+  actually holding. Never a blank page, never a silent fallback.
+  """
+  attr :date, Date, required: true
+
+  def delayed_banner(assigns) do
+    ~H"""
+    <aside class="delayed" role="status">
+      <p class="smallcaps delayed__label">Delayed edition</p>
+      <p class="delayed__text">
+        The 06:00 edition has not been published. You are reading the edition of {Dateline.format(
+          @date
+        )}.
+      </p>
+    </aside>
+    """
+  end
+
+  @doc """
   The desk note that opens the paper. It is machine-written and says so: the
   reader is never invited to mistake the editor's voice for a person's.
   """

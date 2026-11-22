@@ -629,3 +629,27 @@ a:hover {
   line-height: 1.5;
   color: var(--ink-soft);
 }
+.delayed {
+  display: grid;
+  gap: 0.15rem 0.9rem;
+  margin: 1rem 0 0;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--press-red);
+  color: var(--press-red);
+}
+.delayed__label {
+  margin: 0;
+  color: var(--press-red);
+}
+.delayed__text {
+  margin: 0;
+  font-size: 0.95rem;
+  font-style: italic;
+  line-height: 1.4;
+}
+@media (min-width: 44rem) {
+  .delayed {
+    grid-template-columns: 10rem 1fr;
+    align-items: baseline;
+  }
+}

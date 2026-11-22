@@ -46,6 +46,21 @@ defmodule Frontier.Newsroom.DatelineTest do
     end
   end
 
+  describe "deadline/1 and deadline_passed?/2" do
+    test "06:00 IST is 00:30 UTC on the edition day" do
+      assert Dateline.deadline(~D[2026-11-22]) == ~U[2026-11-22 00:30:00Z]
+      assert Dateline.publish_hour() == 6
+    end
+
+    test "the deadline is not passed a moment before it and is passed at it" do
+      day = ~D[2026-11-22]
+
+      refute Dateline.deadline_passed?(day, ~U[2026-11-22 00:29:59Z])
+      assert Dateline.deadline_passed?(day, ~U[2026-11-22 00:30:00Z])
+      assert Dateline.deadline_passed?(day, ~U[2026-11-22 01:00:00Z])
+    end
+  end
+
   describe "format_short/1" do
     test "prints the IST day a story was posted, not the UTC one" do
       assert Dateline.format_short(~U[2026-11-20 18:33:00Z]) == "21 Nov"

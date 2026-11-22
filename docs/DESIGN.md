@@ -52,7 +52,10 @@ shadows, no cards, no rounded corners, no images.
 - Label device: uppercase Newsreader at 11–12px with `0.16em` tracking. It is
   only used where it carries information: edition flag, date line, section
   band, source line, quote credit.
-- **Read time** sits in the edition flag (`Morning, 06:00 IST · 9 min read`),
+- **A delayed edition** carries one strip above the desk note: a red hairline box
+  that names the missing 06:00 and the date the reader is actually holding. It
+  is the only state message on the page, and it is never styled as an error card.
+- **Read time** sits in the edition flag (`06:00 IST · 9 min read`),
   not in a badge or a card: the edition promises a length, so the page says it
   once, in the line that already names the edition.
 

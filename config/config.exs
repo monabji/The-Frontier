@@ -14,12 +14,31 @@ config :frontier,
 # Oban is the paper's clock: fetching, editing and publishing all run as jobs.
 # SQLite has no `FOR UPDATE SKIP LOCKED`, so Oban runs on its Lite engine.
 # Queues, plugins and (from phase 6) Cron entries live here and nowhere else.
+# The paper's clock in UTC, because IST is a fixed +05:30 with no daylight
+# saving: 23:45Z is 05:15 IST, 00:30Z is 06:00 IST, 18:35Z is 00:05 IST.
+config :frontier, :schedule, %{
+  daily: "45 23 * * *",
+  publish: "30 0 * * *",
+  freeze: "35 18 * * *",
+  daily_ist: "05:15",
+  publish_ist: "06:00",
+  freeze_ist: "00:05"
+}
+
 config :frontier, Oban,
   engine: Oban.Engines.Lite,
   repo: Frontier.Repo,
   queues: [default: 10],
   pruner: [max_age: {7, :days}],
-  lifeline: [rescue_after: {2, :hours}]
+  lifeline: [rescue_after: {2, :hours}],
+  plugins: [
+    {Oban.Cron,
+     crontab: [
+       {"45 23 * * *", Frontier.Jobs.DailyRun},
+       {"30 0 * * *", Frontier.Jobs.PublishEdition},
+       {"35 18 * * *", Frontier.Jobs.FreezeEdition}
+     ]}
+  ]
 
 # Configure the endpoint
 config :frontier, FrontierWeb.Endpoint,

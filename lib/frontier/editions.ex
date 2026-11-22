@@ -16,9 +16,12 @@ defmodule Frontier.Editions do
 
   alias Frontier.Editions.{Artifact, Edition, Entry, Rejection, Store}
   alias Frontier.Editor.{Plan, Sections}
+  alias Frontier.Newsroom.Dateline
   alias Frontier.Repo
 
   @type save_result :: {:ok, Edition.t()} | {:error, term()}
+
+  @published_statuses ["published", "late", "frozen"]
 
   @doc "The edition for a day, entries loaded, or nil."
   @spec get(Date.t()) :: Edition.t() | nil
@@ -181,6 +184,53 @@ defmodule Frontier.Editions do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  @doc """
+  The edition a reader gets right now, and whether it is late.
+
+  A published edition for today wins. Before 06:00 the most recent published
+  edition is simply the current paper; after 06:00, if today's publish has not
+  happened, that same edition is served with `delayed: true`. A draft is shown
+  only when no edition has ever been published (the press is being installed).
+  Reads storage only, so a delayed morning does not depend on the database.
+  """
+  @spec current(DateTime.t() | nil) :: %{
+          artifact: Artifact.t() | nil,
+          delayed: boolean(),
+          expected_day: Date.t()
+        }
+  def current(now \\ nil) do
+    now = now || Frontier.Clock.now()
+    today = Dateline.edition_date(now)
+    today_artifact = Store.read(today)
+    latest = latest_published(today)
+
+    cond do
+      today_artifact && today_artifact.status in @published_statuses ->
+        %{artifact: today_artifact, delayed: false, expected_day: today}
+
+      latest ->
+        %{artifact: latest, delayed: Dateline.deadline_passed?(today, now), expected_day: today}
+
+      today_artifact ->
+        %{artifact: today_artifact, delayed: false, expected_day: today}
+
+      true ->
+        %{artifact: nil, delayed: false, expected_day: today}
+    end
+  end
+
+  defp latest_published(today) do
+    Store.days()
+    |> Enum.filter(&(&1 <= today))
+    |> Enum.reverse()
+    |> Enum.find_value(fn day ->
+      case Store.read(day) do
+        %Artifact{status: status} = artifact when status in @published_statuses -> artifact
+        _ -> nil
+      end
+    end)
   end
 
   @doc "The current artifact for a day, read from storage only."

@@ -8,7 +8,11 @@ Vocabulary used across the codebase, issues and docs. When a term here competes 
 - **Edition date** — the calendar day an edition belongs to, in India Standard Time (UTC+05:30, no daylight saving). The date line and the archive key both use the IST date; a UTC evening is already tomorrow's edition (`Frontier.Newsroom.Dateline`).
 - **Edition artifact** — the content-addressed JSON + rendered HTML bundle for one edition, stored under `priv/editions/<day>/<hash>` with a `current` pointer. Archives and rollbacks read artifacts, never re-query the database (ADR 0007).
 - **Artifact version** — one hash of an edition's artifact. A republish or Late Wire addition creates a new version and leaves the old one on disk.
-- **Freeze** — the midnight close of a day: a marker names the artifact that may never move. Nothing may assemble, publish or edit a frozen day.
+- **Freeze** — the close of a day at 00:05 IST: a marker names the artifact that may never move. Nothing may assemble, publish or edit a frozen day.
+- **Delayed edition** — what a reader gets when the 06:00 publish has not happened: the previous published edition, with a strip naming its date. Never a blank page.
+- **Daily run** — the 05:15 IST sequence: fetch, cluster, edit, assemble a draft. It never publishes; the 06:00 job does.
+- **Alert** — the human notification on a failed stage: Telegram, a JSON webhook, or the log. It names the day, stage, attempt and reason.
+- **Run log** — the `runs` rows for a day, printed by `mix frontier.log`: stage, source, status, counts, duration, cost and failure reason.
 - **Archive** — the public list of published editions at `/archive`, one entry per day, newest first. Drafts are not in it.
 - **Late Wire** — stories added to the current day's edition between 06:00 and 18:00, capped at 3, visibly marked with the time added. Not a second edition.
 - **Quiet day** — an edition with fewer stories than target, labelled honestly in the desk note. Never padded.

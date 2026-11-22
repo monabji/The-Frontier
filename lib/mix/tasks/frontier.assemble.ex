@@ -15,15 +15,19 @@ defmodule Mix.Tasks.Frontier.Assemble do
 
   use Mix.Task
 
+  alias Frontier.{Editions, Runs}
+
   @requirements ["app.start"]
 
   @impl Mix.Task
   def run(args) do
     {opts, _argv} = OptionParser.parse!(args, strict: [day: :string])
     day = day(opts[:day])
+    run = Runs.start("assemble", day)
 
-    case Frontier.Editions.assemble(day) do
+    case Editions.assemble(day) do
       {:ok, %{artifact: artifact, stored: stored}} ->
+        Runs.finish(run, inserted: artifact.stats["stories"])
         Mix.shell().info("The Frontier — assemble, #{day}")
         Mix.shell().info("  #{artifact.status}, #{stats(artifact)}")
         Mix.shell().info("  #{stored.hash}")
@@ -31,6 +35,7 @@ defmodule Mix.Tasks.Frontier.Assemble do
         Mix.shell().info("  #{path(day)} · /archive")
 
       {:error, reason} ->
+        Runs.fail(run, reason)
         Mix.raise("no artifact was written for #{day}: #{inspect(reason)}")
     end
   end

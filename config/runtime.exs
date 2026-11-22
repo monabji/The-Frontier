@@ -51,6 +51,24 @@ config :frontier, :editor_pricing, %{
   output_per_million: parse_price.("FRONTIER_LLM_OUTPUT_PRICE", 0.60)
 }
 
+# One human channel for a late paper. Telegram is the plan's default; any
+# webhook that accepts JSON works. With neither, the alert is a log line.
+telegram_token = System.get_env("FRONTIER_TELEGRAM_BOT_TOKEN")
+telegram_chat = System.get_env("FRONTIER_TELEGRAM_CHAT_ID")
+webhook = System.get_env("FRONTIER_ALERT_WEBHOOK_URL")
+
+config :frontier,
+       :alert_adapter,
+       if(is_binary(webhook) or (is_binary(telegram_token) and is_binary(telegram_chat)),
+         do: Frontier.Alerts.Webhook,
+         else: Frontier.Alerts.Log
+       )
+
+config :frontier, Frontier.Alerts.Webhook,
+  url: webhook,
+  telegram_bot_token: telegram_token,
+  telegram_chat_id: telegram_chat
+
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
   config :frontier, FrontierWeb.Endpoint,

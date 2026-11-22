@@ -8,7 +8,10 @@ defmodule Frontier.Newsroom.Dateline do
   database.
   """
 
+  alias Frontier.Clock
+
   @ist_offset_seconds 5 * 3600 + 30 * 60
+  @publish_hour 6
 
   @doc """
   The edition date for a moment in time: today in IST.
@@ -22,7 +25,7 @@ defmodule Frontier.Newsroom.Dateline do
   @spec edition_date(DateTime.t() | nil) :: Date.t()
   def edition_date(now \\ nil)
 
-  def edition_date(nil), do: edition_date(DateTime.utc_now())
+  def edition_date(nil), do: edition_date(Clock.now())
 
   def edition_date(%DateTime{} = now) do
     now
@@ -46,6 +49,27 @@ defmodule Frontier.Newsroom.Dateline do
 
     {start, DateTime.add(start, 86_400, :second)}
   end
+
+  @doc """
+  The moment an edition is due: 06:00 IST on its day, expressed in UTC.
+
+  06:00 IST is 00:30 UTC; India has no daylight saving, so this is exact.
+  """
+  @spec deadline(Date.t()) :: DateTime.t()
+  def deadline(%Date{} = date) do
+    DateTime.new!(date, ~T[00:30:00], "Etc/UTC")
+  end
+
+  @doc "Whether the 06:00 edition for a day is due by `now`."
+  @spec deadline_passed?(Date.t(), DateTime.t() | nil) :: boolean()
+  def deadline_passed?(%Date{} = date, now \\ nil) do
+    now = now || Clock.now()
+    DateTime.compare(now, deadline(date)) != :lt
+  end
+
+  @doc "The hour the paper promises, in IST."
+  @spec publish_hour() :: pos_integer()
+  def publish_hour, do: @publish_hour
 
   @doc """
   A UTC instant shifted to the IST wall clock.

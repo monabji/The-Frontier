@@ -1,5 +1,6 @@
 <div class="sheet">
   <PaperComponents.masthead date={@date} read_minutes={@edition && @edition.read_minutes} />
+  <PaperComponents.delayed_banner :if={@delayed} date={@delayed_date} />
 
   <main class="page">
     <PaperComponents.edition

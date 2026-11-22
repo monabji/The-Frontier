@@ -14,9 +14,9 @@ defmodule FrontierWeb.PageController do
   assembled, the clustered pool is shown so the press is never blank.
   """
   def home(conn, _params) do
-    case Editions.latest_artifact() do
-      nil -> render_pool(conn, Sources.current_edition_day())
-      artifact -> render_artifact(conn, artifact)
+    case Editions.current() do
+      %{artifact: nil} -> render_pool(conn, Sources.current_edition_day())
+      %{artifact: artifact, delayed: delayed} -> render_artifact(conn, artifact, delayed)
     end
   end
 
@@ -24,7 +24,7 @@ defmodule FrontierWeb.PageController do
   def show(conn, %{"year" => year, "month" => month, "day" => day}) do
     with {:ok, date} <- date(year, month, day),
          artifact when not is_nil(artifact) <- Editions.artifact(date) do
-      render_artifact(conn, artifact)
+      render_artifact(conn, artifact, false)
     else
       _ -> not_found(conn)
     end
@@ -47,7 +47,7 @@ defmodule FrontierWeb.PageController do
     |> render(:archive, editions: editions)
   end
 
-  defp render_artifact(conn, artifact) do
+  defp render_artifact(conn, artifact, delayed) do
     conn
     |> assign(:page_title, "The Frontier — #{Dateline.format(artifact.day)}")
     |> assign(
@@ -56,12 +56,16 @@ defmodule FrontierWeb.PageController do
         "The day in AI and technology, edited to be read in ten minutes. " <>
           "Edition of #{Dateline.format(artifact.day)}."
     )
+    |> assign(:delayed, delayed)
+    |> assign(:delayed_date, artifact.day)
     |> render(:home,
       date: artifact.day,
       edition: FrontierWeb.ArtifactHTML.edition_view(artifact),
       sections: artifact.sections,
       tickers: artifact.also_today,
-      stories: []
+      stories: [],
+      delayed: delayed,
+      delayed_date: artifact.day
     )
   end
 
@@ -80,7 +84,9 @@ defmodule FrontierWeb.PageController do
       edition: nil,
       sections: [],
       tickers: [],
-      stories: stories
+      stories: stories,
+      delayed: false,
+      delayed_date: day
     )
   end
 

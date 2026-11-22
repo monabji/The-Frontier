@@ -46,7 +46,7 @@ See `docs/adr/` for the decisions worth remembering and `GLOSSARY.md` for vocabu
 | `profiles` | reader ↔ versioned profile document |
 | `profile_events` | append-only chips, thumb ups/downs, edits |
 | `folds` | reader + day + generated payload, cached; model and cost |
-| `runs` | stage, day, status, timing, cost, errors |
+| `runs` | stage, day, status, counts, timing, cost, model, tokens, errors — the readable run log |
 
 ### Pipeline
 
@@ -91,8 +91,8 @@ Fold generation is lazy: on a reader's first page load of the day, the editor bu
 
 ## Operations
 
-- **06:00 IST** publish; Oban cron with exponential retry (Oban Lite on SQLite); alert to email/Telegram on failure.
-- If generation fails, serve the **previous edition with a "delayed" banner** — never a blank page.
+- **05:15 IST** fetch and edit; **06:00 IST** publish; **00:05 IST** freeze the day that ended. Oban cron in UTC (23:45Z, 00:30Z, 18:35Z) with exponential retry (Oban Lite on SQLite, three attempts); alert to Telegram or a webhook on failure; `mix frontier.log` reads the run rows.
+- If generation fails, serve the **previous edition with a "delayed" banner** — never a blank page. Before 06:00 the previous edition is simply the current paper; after 06:00 it carries the banner.
 - Admin page: run job now, view run log, force publish (republish), disable a source.
 - **Host:** Oracle Cloud Always Free `VM.Standard.A1.Flex` — 2 OCPU / 12 GB ARM since Jun 2026 (older guides say 4/24), Ubuntu 24.04 aarch64, 50 GB boot. Build the release for aarch64.
 - **TLS/DNS:** DuckDNS subdomain behind Caddy (HTTP-01). Never nip.io/sslip.io in production — they are not on the Public Suffix List and share Let's Encrypt's global 50-certs/week budget. A real domain (~$11/yr) as soon as there are readers.

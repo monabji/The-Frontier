@@ -161,10 +161,10 @@ Expensive to change after the fact because other things hang off them: the editi
 **Build:** Oban cron (fetch 05:15, publish 06:00 IST), retries with backoff, run records, alert channel, previous-edition fallback, freeze.
 
 **Acceptance:**
-- [ ] a simulated failure serves the previous edition with the banner
-- [ ] the failure sends an alert
-- [ ] a normal run finishes well before 06:00
-- [ ] every run leaves a readable log
+- [x] a simulated failure serves the previous edition with the banner
+- [x] the failure sends an alert
+- [x] a normal run finishes well before 06:00
+- [x] every run leaves a readable log
 
 **Review gate:** timing and the alert channel. Do you actually want 06:00, or 06:30?
 

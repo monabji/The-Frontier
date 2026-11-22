@@ -107,6 +107,37 @@ defmodule FrontierWeb.ArtifactPageTest do
     end
   end
 
+  describe "a late morning" do
+    test "after 06:00 the previous edition is served with a banner", %{conn: conn, day: day} do
+      File.rm_rf!(Store.day_dir(day))
+      yesterday = Date.add(day, -1)
+      write_artifact(yesterday, "published", "Yesterday's desk note.")
+
+      set_clock(DateTime.new!(day, ~T[01:00:00], "Etc/UTC"))
+
+      html = get(conn, ~p"/") |> html_response(200)
+
+      assert html =~ "Delayed edition"
+      assert html =~ "A previous headline"
+      assert html =~ Dateline.format(yesterday)
+      refute html =~ "Quokka1 Zephyr1 opens a bakery"
+    end
+
+    test "before 06:00 the previous edition is simply the paper", %{conn: conn, day: day} do
+      File.rm_rf!(Store.day_dir(day))
+      yesterday = Date.add(day, -1)
+      write_artifact(yesterday, "published", "Yesterday's desk note.")
+
+      set_clock(DateTime.new!(day, ~T[00:00:00], "Etc/UTC"))
+
+      html = get(conn, ~p"/") |> html_response(200)
+
+      refute html =~ "Delayed edition"
+      assert html =~ "A previous headline"
+      assert html =~ Dateline.format(yesterday)
+    end
+  end
+
   describe "the archive" do
     test "lists every published day, newest first", %{conn: conn, day: day} do
       previous = Date.add(day, -1)
@@ -178,6 +209,19 @@ defmodule FrontierWeb.ArtifactPageTest do
 
     {:ok, _stored} = Store.write(artifact, "<h1>A previous headline</h1>")
     artifact
+  end
+
+  defp set_clock(datetime) do
+    previous = Application.get_env(:frontier, :clock)
+    Application.put_env(:frontier, :clock, fn -> datetime end)
+
+    on_exit(fn ->
+      if previous do
+        Application.put_env(:frontier, :clock, previous)
+      else
+        Application.delete_env(:frontier, :clock)
+      end
+    end)
   end
 
   defp edition_path(%Date{} = day), do: "/#{day.year}/#{day.month}/#{day.day}"
