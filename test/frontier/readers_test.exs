@@ -80,6 +80,18 @@ defmodule Frontier.ReadersTest do
       assert second.first_seen_at == first.first_seen_at
     end
 
+    test "a reader id must have the shape the plug mints" do
+      changeset =
+        Reader.changeset(%Reader{}, %{
+          public_id: "not a valid id",
+          first_seen_at: ~U[2026-11-22 00:00:00Z],
+          last_seen_at: ~U[2026-11-22 00:00:00Z]
+        })
+
+      refute changeset.valid?
+      assert {"has invalid format", _} = changeset.errors[:public_id]
+    end
+
     test "a public id cannot be changed by an update" do
       reader = Readers.ensure(Readers.new_id())
 

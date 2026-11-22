@@ -29,6 +29,7 @@ defmodule Frontier.Readers.Reader do
     |> cast(attrs, [:first_seen_at, :last_seen_at])
     |> put_public_id(reader, attrs)
     |> validate_required(@fields)
+    |> validate_format(:public_id, ~r/\A[A-Za-z0-9_-]{20,64}\z/)
     |> unique_constraint(:public_id)
   end
 
