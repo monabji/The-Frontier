@@ -16,7 +16,7 @@ A daily, free, public newspaper for AI and tech: one dated edition each morning,
 | Cadence | One dated edition at 06:00 IST; Late Wire until 18:00 (max 3); archive freezes at midnight |
 | Sections | Front Page, Models & Releases, Research, Tooling & Dev, The Discourse, The Long Read, Back Page, plus Also Today |
 | Stack | Elixir + Phoenix LiveView + SQLite + Oban, one release binary, one free VM |
-| Identity | Signed anonymous cookie ID, no accounts; saveable "your paper" link |
+| Identity | Signed anonymous cookie ID, no accounts; append-only events under a versioned taste document; saveable "your paper" link; explicit forget |
 | Design | Letterpress broadsheet: Newsreader body, Fraunces display (settled in phase 0, see `docs/DESIGN.md`), letterspaced small-cap datelines, no images in v1, Night Edition |
 | Ops | Oracle Cloud Always Free ARM VM, Caddy TLS, Oban cron, alerts, delayed-edition fallback |
 | Money | $0 infrastructure; LLM cents per edition; X is the only paid upgrade and is not needed to launch |
@@ -28,7 +28,7 @@ See `docs/adr/` for the decisions worth remembering and `GLOSSARY.md` for vocabu
 - **The edition is an immutable artifact.** The daily job builds a JSON + HTML bundle, content-addressed and stored under `priv/editions/<day>/<hash>`. The web app renders it; `/2026/11/22`, `/` and `/archive` read storage, not the database. Archives and rollbacks are storage lookups (ADR 0007).
 - **A printed day is frozen, not recomputed.** `raw_items` is current state and re-fetching moves it; a pool is rebuilt only for the current day. Phase 5's artifact freezes the pool, its members and roles, and a past day is replayed from the artifact (ADR 0004, 0005).
 - **The page is a projection of the latest run.** Each source's most recent successful fetch is the pool the page reads (ADR 0004); `raw_items` is current state, and history lives in `runs` and, later, in edition artifacts. Late Wire appends entries; nothing printed is mutated.
-- **Taste is a document, not a model.** Profiles are versioned JSON passed to the editor as context. No embeddings, no training.
+- **Taste is a document, not a model.** Profiles are versioned JSON built from append-only events and passed to the editor as context. No embeddings, no training; a thumb changes tomorrow's fold, not today's page.
 - **Sources are adapters.** Each adapter implements `fetch/1 → normalize/1` with cluster hints. X, Bluesky, HN, RSS and arXiv are peers.
 - **One process, one database.** Phoenix serves pages, Oban runs jobs, SQLite holds state. No JS build, no client framework.
 

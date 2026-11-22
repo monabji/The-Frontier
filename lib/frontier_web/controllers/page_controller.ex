@@ -58,6 +58,7 @@ defmodule FrontierWeb.PageController do
     )
     |> assign(:delayed, delayed)
     |> assign(:delayed_date, artifact.day)
+    |> assign(:noted, conn.params["noted"] == "thumb")
     |> render(:home,
       date: artifact.day,
       edition: FrontierWeb.ArtifactHTML.edition_view(artifact),
@@ -65,7 +66,11 @@ defmodule FrontierWeb.PageController do
       tickers: artifact.also_today,
       stories: [],
       delayed: delayed,
-      delayed_date: artifact.day
+      delayed_date: artifact.day,
+      noted: conn.params["noted"] == "thumb",
+      thumbs: true,
+      csrf_token: get_csrf_token(),
+      return_to: conn.request_path
     )
   end
 
@@ -86,7 +91,11 @@ defmodule FrontierWeb.PageController do
       tickers: [],
       stories: stories,
       delayed: false,
-      delayed_date: day
+      delayed_date: day,
+      noted: conn.params["noted"] == "thumb",
+      thumbs: false,
+      csrf_token: nil,
+      return_to: "/"
     )
   end
 

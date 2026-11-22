@@ -65,6 +65,14 @@ Three weights of hairline do all the hierarchy: 3px above the masthead, 1px for
 the date band, section band, byline and quote, and nothing else. A rule is
 never decoration; it separates two things that differ.
 
+## Reader pages
+
+Onboarding, your paper and privacy are set in the same sheet and the same two
+faces. Chips are type-only labels with a hairline box, never pills or cards; the
+selected state is the press red, used once. Thumb controls are two small-cap
+words under the source line, not buttons with icons. The recovery link is a full
+line of type the reader can select, not a hidden account setting.
+
 ## What is deliberately absent
 
 Navigation, buttons, flash messages, a footer sitemap, tracking, and any

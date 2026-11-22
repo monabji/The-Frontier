@@ -4,6 +4,7 @@ defmodule FrontierWeb.Router do
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
+    plug FrontierWeb.ReaderPlug
     plug :fetch_live_flash
     plug :put_root_layout, html: {FrontierWeb.Layouts, :root}
     plug :protect_from_forgery
@@ -20,6 +21,13 @@ defmodule FrontierWeb.Router do
     get "/", PageController, :home
     get "/archive", PageController, :archive
     get "/pool", PoolController, :index
+    get "/start", ReaderController, :new
+    post "/start", ReaderController, :create
+    get "/your-paper", ReaderController, :paper
+    get "/privacy", ReaderController, :privacy
+    post "/forget", ReaderController, :forget
+    post "/thumbs", ReaderController, :thumb
+    get "/recover/:token", ReaderController, :recover
     get "/:year/:month/:day", PageController, :show
   end
 

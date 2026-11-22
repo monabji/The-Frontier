@@ -1,0 +1,96 @@
+<div class="sheet reader-sheet">
+  <header class="masthead">
+    <p class="flagline">
+      <span class="smallcaps">Privacy</span>
+      <span class="smallcaps">No account</span>
+    </p>
+    <h1 class="masthead__wordmark"><a href="/">The Frontier</a></h1>
+    <p class="masthead__motto">Exactly what is kept, in plain words.</p>
+  </header>
+
+  <main class="page reader-privacy">
+    <h2 class="section-band">
+      <span class="smallcaps">What is stored</span>
+      <span class="smallcaps section-band__kicker">Three tables</span>
+    </h2>
+
+    <p>
+      The Frontier has no accounts, no email addresses and no passwords. There is
+      no sign-up, and nothing here identifies you to another reader.
+    </p>
+
+    <dl class="reader-facts">
+      <dt><code>readers</code></dt>
+      <dd>
+        One row for you: a random ID (22 characters), the first time the ID was
+        saved, and the last time it was used. The row exists on your first saved
+        chip or thumb, not when you arrive.
+      </dd>
+
+      <dt><code>profiles</code></dt>
+      <dd>
+        Every saved version of your taste document: a version number and JSON
+        containing your interest chips, the accounts you trust, an avoid list,
+        a map of story links to <em>up</em> or <em>down</em>, and the count of
+        each. Older versions are kept when a new one is saved.
+      </dd>
+
+      <dt><code>profile_events</code></dt>
+      <dd>
+        An append-only list of what you did: each chip, trusted account and thumb,
+        with its story link, the edition day, and the time. Events are never
+        edited.
+      </dd>
+    </dl>
+
+    <h2 class="section-band">
+      <span class="smallcaps">The cookie</span>
+      <span class="smallcaps section-band__kicker">One</span>
+    </h2>
+
+    <p>
+      A single cookie, <code>frontier_reader</code>, holds a signed random reader
+      ID. It is HttpOnly, SameSite=Lax, and lasts two years. It is not a session
+      cookie and it is not used for advertising or analytics. The signature means
+      a changed ID is rejected and a new one is minted.
+    </p>
+
+    <h2 class="section-band">
+      <span class="smallcaps">Your link</span>
+      <span class="smallcaps section-band__kicker">A key</span>
+    </h2>
+
+    <p>
+      The “your paper” link contains a signed token for the same ID. Opening it
+      rebinds the cookie. Treat it like a key: anyone with the link can read that
+      profile, though they cannot change it without the browser that holds the
+      cookie.
+    </p>
+
+    <h2 class="section-band">
+      <span class="smallcaps">What is not stored</span>
+      <span class="smallcaps section-band__kicker">Nothing else</span>
+    </h2>
+
+    <ul class="reader-list">
+      <li>No name, email address, phone number or password.</li>
+      <li>No IP address, user agent, referrer or location.</li>
+      <li>No reading history beyond the chips, accounts and thumbs you save.</li>
+      <li>No third-party analytics, advertising or tracking scripts.</li>
+    </ul>
+
+    <h2 class="section-band">
+      <span class="smallcaps">Erase it</span>
+      <span class="smallcaps section-band__kicker">Your call</span>
+    </h2>
+
+    <p>
+      “Forget this reader” on <a href="/your-paper">your paper page</a> deletes the
+      reader row, every profile version and every event, and clears the cookie.
+      Clearing cookies without it leaves the rows in the database, unreachable
+      unless you kept the link.
+    </p>
+  </main>
+
+  <PaperComponents.colophon />
+</div>

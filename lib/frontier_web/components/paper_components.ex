@@ -48,6 +48,9 @@ defmodule FrontierWeb.PaperComponents do
   attr :edition, :any, required: true
   attr :sections, :list, required: true
   attr :tickers, :list, required: true
+  attr :thumbs, :boolean, default: false
+  attr :csrf_token, :string, default: nil
+  attr :return_to, :string, default: "/"
 
   def edition(assigns) do
     ~H"""
@@ -67,6 +70,13 @@ defmodule FrontierWeb.PaperComponents do
           <cite class="smallcaps">{entry.source_label || Canonical.host(entry.url)}</cite>
         </blockquote>
         <.entry_source entry={entry} />
+        <.thumb_actions
+          :if={@thumbs}
+          entry={entry}
+          edition_date={@edition.day}
+          csrf_token={@csrf_token}
+          return_to={@return_to}
+        />
       </article>
     </section>
 
@@ -102,6 +112,45 @@ defmodule FrontierWeb.PaperComponents do
         )}.
       </p>
     </aside>
+    """
+  end
+
+  @doc """
+  A quiet thumb control: two words, a real form, no JavaScript. It says
+  tomorrow, because today's paper is already printed.
+  """
+  attr :entry, :any, required: true
+  attr :edition_date, Date, required: true
+  attr :csrf_token, :string, required: true
+  attr :return_to, :string, required: true
+
+  def thumb_actions(assigns) do
+    ~H"""
+    <form class="thumb" method="post" action="/thumbs">
+      <input type="hidden" name="_csrf_token" value={@csrf_token} />
+      <input type="hidden" name="thumb[story]" value={@entry.canonical_url} />
+      <input type="hidden" name="thumb[return]" value={@return_to} />
+      <input type="hidden" name="thumb[edition_day]" value={Date.to_iso8601(@edition_date)} />
+      <span class="smallcaps thumb__label">More like this?</span>
+      <button
+        class="thumb__button"
+        type="submit"
+        name="thumb[value]"
+        value="up"
+        aria-label={"More like this: " <> @entry.headline}
+      >
+        Yes
+      </button>
+      <button
+        class="thumb__button"
+        type="submit"
+        name="thumb[value]"
+        value="down"
+        aria-label={"Less like this: " <> @entry.headline}
+      >
+        No
+      </button>
+    </form>
     """
   end
 

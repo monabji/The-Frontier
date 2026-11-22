@@ -1,6 +1,7 @@
 <div class="sheet">
   <PaperComponents.masthead date={@date} read_minutes={@edition && @edition.read_minutes} />
   <PaperComponents.delayed_banner :if={@delayed} date={@delayed_date} />
+  <p :if={@noted} class="noted smallcaps">Noted · tomorrow's paper will reflect it</p>
 
   <main class="page">
     <PaperComponents.edition
@@ -8,6 +9,9 @@
       edition={@edition}
       sections={@sections}
       tickers={@tickers}
+      thumbs={@thumbs}
+      csrf_token={@csrf_token}
+      return_to={@return_to}
     />
 
     <PaperComponents.section_band :if={!@edition} section="Front Page" kicker={kicker(@stories)} />

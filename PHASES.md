@@ -181,10 +181,10 @@ Expensive to change after the fact because other things hang off them: the editi
 **Build:** signed cookie reader ID, append-only `profile_events`, versioned profile document, thumbs, recovery link.
 
 **Acceptance:**
-- [ ] clearing cookies then opening the recovery link restores the profile
-- [ ] a thumb appends an event and bumps the profile version
-- [ ] no email, password or account exists anywhere
-- [ ] the privacy page says exactly what is stored
+- [x] clearing cookies then opening the recovery link restores the profile
+- [x] a thumb appends an event and bumps the profile version
+- [x] no email, password or account exists anywhere
+- [x] the privacy page says exactly what is stored
 
 **Review gate:** the onboarding questions. Do they produce a good first fold? Change the chips now — this is the only place a new reader can express taste.
 

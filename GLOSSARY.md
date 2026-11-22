@@ -45,10 +45,13 @@ Vocabulary used across the codebase, issues and docs. When a term here competes 
 
 ## Readers
 
-- **Reader ID** — a signed anonymous cookie identity. There are no accounts, passwords or emails in v1.
-- **Your paper link** — a saveable recovery link that re-binds a reader ID, so a cleared browser is not a lost profile.
-- **Taste profile** — a readable, versioned document per reader: interest chips, trusted accounts, avoid list, thumb history. Not a model, not embeddings; it is passed to the editor as context.
-- **Thumb** — an explicit up/down on a story; appended to the profile and reflected in tomorrow's fold.
+- **Reader ID** — a random, signed cookie identity. There are no accounts, passwords or emails in v1. The row is created on the first save, not on arrival.
+- **Chip** — one of eight broad interests a reader can pick at onboarding: models, research, tooling, policy, startups, hardware, security, culture.
+- **Profile version** — one saved snapshot of the taste document. Saves append a version; they never edit one.
+- **Your paper link** — a saveable recovery link that re-binds a reader ID, so a cleared browser is not a lost profile. It is a key: whoever holds it can read that profile.
+- **Taste profile** — a readable, versioned document per reader built from append-only events: interest chips, trusted accounts, avoid list, thumb history. Not a model, not embeddings; it is passed to the editor as context.
+- **Thumb** — an explicit up/down on a story; appends an event and bumps the profile version, and is reflected in tomorrow's fold, never today's printed page.
+- **Forget** — deleting a reader row and, by cascade, every profile version and event; the cookie is cleared at the same time.
 - **Fold** — a reader's personalized selection and ordering drawn from the shared pool. The shared spine stays identical for everyone.
 - **Shared spine** — Front Page, Models & Releases, Research, Tooling & Dev: the same stories for every reader.
 - **Night Edition** — the dark theme.

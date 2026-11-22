@@ -1,0 +1,59 @@
+<div class="sheet reader-sheet">
+  <header class="masthead">
+    <p class="flagline">
+      <span class="smallcaps">Your paper</span>
+      <span class="smallcaps">No account</span>
+    </p>
+    <h1 class="masthead__wordmark"><a href="/">The Frontier</a></h1>
+    <p class="masthead__motto">
+      Tell the paper what you want more of. It is not a form you have to finish.
+    </p>
+  </header>
+
+  <main class="page">
+    <h2 class="section-band">
+      <span class="smallcaps">Interests</span>
+      <span class="smallcaps section-band__kicker">Eight chips</span>
+    </h2>
+
+    <p :if={@error} class="reader-error">{@error}</p>
+
+    <form method="post" action="/start" class="onboard">
+      <input type="hidden" name="_csrf_token" value={@csrf_token} />
+
+      <fieldset class="chips">
+        <legend class="smallcaps chips__legend">Pick any that apply</legend>
+        <label :for={chip <- @chips} class="chip" for={"chip-" <> chip.key}>
+          <input
+            id={"chip-" <> chip.key}
+            type="checkbox"
+            name="chips[]"
+            value={chip.key}
+            checked={chip.key in @selected}
+          />
+          <span>{chip.label}</span>
+        </label>
+      </fieldset>
+
+      <label class="field" for="trusted-accounts">
+        <span class="smallcaps">Accounts you trust, optional</span>
+        <input
+          id="trusted-accounts"
+          type="text"
+          name="trusted_accounts"
+          value={@trusted_accounts}
+          placeholder="simonwillison.net, karpathy.bsky.social"
+          autocomplete="off"
+        />
+      </label>
+
+      <button class="button" type="submit">Save my paper</button>
+    </form>
+
+    <p class="fineprint">
+      No email, no password, no account. <a href="/privacy">What is stored</a>.
+    </p>
+  </main>
+
+  <PaperComponents.colophon />
+</div>

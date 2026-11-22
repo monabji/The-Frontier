@@ -1,0 +1,74 @@
+<div class="sheet reader-sheet">
+  <header class="masthead">
+    <p class="flagline">
+      <span class="smallcaps">Your paper</span>
+      <span class="smallcaps">Version {@summary.version}</span>
+    </p>
+    <h1 class="masthead__wordmark"><a href="/">The Frontier</a></h1>
+    <p class="masthead__motto">A few choices, kept as a document. Not an account.</p>
+  </header>
+
+  <main class="page">
+    <h2 class="section-band">
+      <span class="smallcaps">What you asked for</span>
+      <span class="smallcaps section-band__kicker">
+        {if @summary.version == 0, do: "Nothing yet", else: "Saved"}
+      </span>
+    </h2>
+
+    <p :if={@summary.version == 0} class="reader-empty">
+      You haven't told the paper anything yet. <a href="/start">Pick a few chips</a>
+      and your next fold will know.
+    </p>
+
+    <dl :if={@summary.version > 0} class="reader-profile">
+      <dt class="smallcaps">Interests</dt>
+      <dd>
+        <span :if={@summary.chips == []} class="reader-quiet">None chosen</span>
+        <span :for={{_key, label} <- @summary.chips} class="reader-tag">{label}</span>
+      </dd>
+
+      <dt class="smallcaps">Trusted accounts</dt>
+      <dd>
+        <span :if={@summary.trusted_accounts == []} class="reader-quiet">None</span>
+        <span :for={account <- @summary.trusted_accounts} class="reader-tag">{account}</span>
+      </dd>
+
+      <dt class="smallcaps">Thumbs</dt>
+      <dd>
+        {thumb_count(@summary.thumb_counts, "up")} more like this, {thumb_count(
+          @summary.thumb_counts,
+          "down"
+        )} less.
+      </dd>
+    </dl>
+
+    <h2 class="section-band">
+      <span class="smallcaps">Your link</span>
+      <span class="smallcaps section-band__kicker">Save it</span>
+    </h2>
+
+    <p class="reader-copy">
+      This link restores the same paper if you clear your cookies or open it on
+      another browser. Anyone who has it can read this profile; keep it to yourself.
+    </p>
+
+    <p class="reader-link">
+      <a href={@recovery_url}>Open your paper link</a>
+      <input readonly value={@recovery_url} aria-label="Your paper recovery link" />
+    </p>
+
+    <p class="reader-actions">
+      <a href="/start">Change interests</a>
+      <a href="/">Read today's paper</a>
+      <a href="/privacy">What is stored</a>
+    </p>
+
+    <form method="post" action="/forget" class="forget">
+      <input type="hidden" name="_csrf_token" value={@csrf_token} />
+      <button class="button button--quiet" type="submit">Forget this reader</button>
+    </form>
+  </main>
+
+  <PaperComponents.colophon />
+</div>
