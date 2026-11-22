@@ -152,6 +152,18 @@ defmodule Frontier.JobsTest do
       assert List.last(runs).inserted == 1
     end
 
+    test "a publish retry on a frozen day is a quiet skip", %{} do
+      :ok = draft!(@day)
+      {:ok, _} = Editions.publish(@day)
+      {:ok, _} = Editions.freeze(@day)
+
+      assert :ok = PublishEdition.perform(job(@day))
+      refute_received {:alert, _level, _title, _body}
+
+      [run] = Runs.list(@day) |> Enum.filter(&(&1.stage == "publish")) |> Enum.take(-1)
+      assert run.status == "skipped"
+    end
+
     test "an already published edition is not a false alarm on a retry", %{} do
       :ok = draft_without_morning!(@day)
       {:ok, _} = Editions.publish(@day)

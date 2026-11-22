@@ -22,7 +22,11 @@ defmodule Frontier.Jobs.PublishEdition do
       edition == nil ->
         publish(day, run, attempt, max_attempts)
 
-      edition.status in ["published", "late", "frozen"] ->
+      edition.status == "frozen" ->
+        Runs.skip(run, "edition is already frozen")
+        :ok
+
+      edition.status in ["published", "late"] ->
         publish(day, run, attempt, max_attempts)
 
       not Runs.successful?(day, "daily") ->
