@@ -59,6 +59,16 @@ shadows, no cards, no rounded corners, no decorative images. Photographs are the
   not in a badge or a card: the edition promises a length, so the page says it
   once, in the line that already names the edition.
 
+## The broadsheet grid
+
+On a desktop the sheet is 74rem and the page is a 12-column grid. The Front Page
+lead takes eight columns and a text rail of two stories takes four; a four-story
+section runs four across, a three-story section three across, the Long Read is
+full width with three columns of body, and Also Today is a five-column index.
+At tablet width the grid is six columns and the rail falls below the lead; at
+390px everything is one column with the same type, rules and images. Columns are
+narrow on purpose: a story column is measured in words per line, not in cards.
+
 ## Photography
 
 A photograph is the source's evidence, not decoration. Use the publisher's own

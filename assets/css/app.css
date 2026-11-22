@@ -936,13 +936,29 @@ a:hover {
     grid-template-columns: repeat(12, minmax(0, 1fr));
     column-gap: 2rem;
   }
+  .section {
+    margin-top: 1.05rem;
+  }
   .section--front-page .story--lead {
-    grid-column: 1 / -1;
-    padding-right: 0;
-    border-right: 0;
+    grid-column: 1 / span 8;
+    grid-row: span 2;
+    padding-right: 1.5rem;
+    border-right: 1px solid var(--ink-faint);
   }
   .section--front-page .story--standard {
-    grid-column: span 6;
+    grid-column: 9 / span 4;
+  }
+  /* The rail is text, like a newspaper's sidebar; the lead carries the
+     front-page photograph. */
+  .section--front-page .story--standard .story__figure {
+    display: none;
+  }
+  .section--front-page .story--standard .story__headline {
+    font-size: 1.25rem;
+  }
+  .section--front-page .story--standard .story__summary {
+    font-size: 0.92rem;
+    line-height: 1.45;
   }
   .story--lead .story__figure img {
     aspect-ratio: 21 / 9;
@@ -953,20 +969,71 @@ a:hover {
   .section--models-and-releases .story,
   .section--tooling-and-dev .story,
   .section--back-page .story {
-    grid-column: span 6;
+    grid-column: span 3;
   }
   .section--research .story,
   .section--the-discourse .story {
     grid-column: span 4;
   }
-  .story--lead .story__summary,
-  .section--the-long-read .story__summary {
+  .section .story__summary {
+    font-size: 0.95rem;
+    line-height: 1.45;
+  }
+  .story--lead .story__summary {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  .section .story__headline {
+    font-size: 1.15rem;
+  }
+  .story--lead .story__headline {
+    font-size: clamp(2.4rem, 4.6vw, 3.5rem);
+  }
+  .section .story {
+    padding-top: 0.75rem;
+    padding-bottom: 0.85rem;
+  }
+  .section .story__figure {
+    margin-bottom: 0.5rem;
+  }
+  .section .story__quote {
+    margin-top: 0.55rem;
+    padding-left: 0.65rem;
+  }
+  .section .story__quote p {
+    font-size: 0.92rem;
+    line-height: 1.42;
+  }
+  .section .story__quote cite {
+    font-size: 0.62rem;
+  }
+  .section .story__dek {
+    font-size: 1.05rem;
+  }
+  .section .item-source {
+    font-size: 0.72rem;
+  }
+  .section .thumb {
+    margin-top: 0.45rem;
+  }
+  .story--lead .story__summary {
     column-count: 2;
-    column-gap: 2.5rem;
+    column-gap: 2rem;
+    max-width: none;
+  }
+  .section--the-long-read .story__summary {
+    column-count: 3;
+    column-gap: 2.2rem;
     max-width: none;
   }
   .section--also-today .ticker {
-    column-count: 3;
-    column-gap: 2rem;
+    column-count: 5;
+    column-gap: 1.5rem;
+  }
+  .section--also-today .ticker__headline {
+    font-size: 0.98rem;
+  }
+  .section--also-today .ticker__line {
+    font-size: 0.82rem;
   }
 }
