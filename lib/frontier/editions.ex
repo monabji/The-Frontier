@@ -14,7 +14,7 @@ defmodule Frontier.Editions do
 
   import Ecto.Query
 
-  alias Frontier.Editions.{Edition, Entry, Rejection}
+  alias Frontier.Editions.{Artifact, Edition, Entry, Rejection, Store}
   alias Frontier.Editor.{Plan, Sections}
   alias Frontier.Repo
 
@@ -42,11 +42,12 @@ defmodule Frontier.Editions do
   @doc "Whether a day's edition can still be written by an editor run."
   @spec writable?(Date.t()) :: boolean()
   def writable?(day) do
-    case Repo.get_by(Edition, day: day) do
-      nil -> true
-      %Edition{status: "draft"} -> true
-      %Edition{} -> false
-    end
+    not Store.frozen?(day) and
+      case Repo.get_by(Edition, day: day) do
+        nil -> true
+        %Edition{status: "draft"} -> true
+        %Edition{} -> false
+      end
   end
 
   @doc """
@@ -60,6 +61,7 @@ defmodule Frontier.Editions do
     now = Keyword.get_lazy(opts, :now, fn -> DateTime.utc_now() |> DateTime.truncate(:second) end)
 
     Repo.transaction(fn ->
+      if Store.frozen?(day), do: Repo.rollback(:edition_is_frozen)
       edition = lock_edition(day, now)
 
       case edition.status do
@@ -89,26 +91,129 @@ defmodule Frontier.Editions do
     end)
   end
 
-  @doc "Marks a draft published. Idempotent while the status is published."
+  @doc """
+  Builds the day's artifact and points the store at it.
+
+  A draft can be assembled any number of times; each distinct set of inputs is
+  a new content-addressed version, and the previous version stays on disk. A
+  frozen day is refused.
+  """
+  @spec assemble(Date.t(), keyword()) :: {:ok, map()} | {:error, term()}
+  def assemble(day, opts \\ []) do
+    case get(day) do
+      nil ->
+        {:error, :no_edition}
+
+      %Edition{} = edition ->
+        assemble_edition(edition, opts)
+    end
+  end
+
+  defp assemble_edition(edition, opts) do
+    if Store.frozen?(edition.day) do
+      {:error, :edition_is_frozen}
+    else
+      status = Keyword.get(opts, :status, edition.status)
+      published_at = Keyword.get(opts, :published_at, edition.published_at)
+      artifact = Artifact.build(%{edition | status: status, published_at: published_at})
+      renderer = Keyword.get(opts, :renderer, &FrontierWeb.ArtifactHTML.render/1)
+
+      with {:ok, html} <- render(artifact, renderer),
+           {:ok, stored} <- Store.write(artifact, html),
+           {:ok, saved} <- save_artifact(edition, stored, status, published_at) do
+        {:ok, %{edition: saved, artifact: artifact, stored: stored}}
+      end
+    end
+  end
+
+  @doc """
+  Publishes a draft and freezes its first published artifact.
+
+  Publishing is the moment the paper becomes an edition: the artifact is
+  written with status published, then the row is updated. An already-published
+  edition with an artifact is returned unchanged.
+  """
   @spec publish(Date.t(), keyword()) :: {:ok, Edition.t()} | {:error, term()}
   def publish(day, opts \\ []) do
     now = Keyword.get_lazy(opts, :now, fn -> DateTime.utc_now() |> DateTime.truncate(:second) end)
 
-    case Repo.get_by(Edition, day: day) do
+    case get(day) do
       nil ->
         {:error, :no_edition}
 
-      %Edition{status: status} = edition when status in ["published", "late"] ->
+      %Edition{status: status, artifact_hash: hash} = edition
+      when status in ["published", "late"] and is_binary(hash) ->
         {:ok, edition}
 
       %Edition{status: "frozen"} ->
         {:error, :edition_is_frozen}
 
-      %Edition{status: "draft"} = edition ->
-        edition
-        |> Edition.changeset(%{status: "published", published_at: now})
-        |> Repo.update()
+      %Edition{} = edition ->
+        published_at = edition.published_at || now
+
+        case assemble_edition(edition, status: "published", published_at: published_at) do
+          {:ok, %{edition: saved}} -> {:ok, saved}
+          {:error, reason} -> {:error, reason}
+        end
     end
+  end
+
+  @doc """
+  Closes a day: the store's marker freezes the current artifact, and the row
+  records when. Freezing is idempotent.
+  """
+  @spec freeze(Date.t(), keyword()) :: {:ok, Edition.t() | nil} | {:error, term()}
+  def freeze(day, opts \\ []) do
+    now = Keyword.get_lazy(opts, :now, fn -> DateTime.utc_now() |> DateTime.truncate(:second) end)
+
+    case Store.freeze(day) do
+      :ok ->
+        case Repo.get_by(Edition, day: day) do
+          nil ->
+            {:ok, nil}
+
+          edition ->
+            edition
+            |> Edition.changeset(%{status: "frozen", frozen_at: edition.frozen_at || now})
+            |> Repo.update()
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  @doc "The current artifact for a day, read from storage only."
+  @spec artifact(Date.t()) :: Artifact.t() | nil
+  def artifact(day), do: Store.read(day)
+
+  @doc "The newest stored artifact, read from storage only."
+  @spec latest_artifact() :: Artifact.t() | nil
+  def latest_artifact, do: Store.latest()
+
+  defp render(artifact, renderer) do
+    {:ok, renderer.(artifact)}
+  rescue
+    exception -> {:error, {:render_failed, Exception.message(exception)}}
+  end
+
+  defp save_artifact(edition, stored, status, published_at) do
+    attrs = %{
+      artifact_hash: stored.hash,
+      artifact_path: stored.json_path,
+      built_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    }
+
+    attrs =
+      if status == edition.status do
+        attrs
+      else
+        Map.merge(attrs, %{status: status, published_at: published_at})
+      end
+
+    edition
+    |> Edition.changeset(attrs)
+    |> Repo.update()
   end
 
   @doc "The drop log for a day: what the editor chose and grounding refused."

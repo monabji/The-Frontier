@@ -28,4 +28,10 @@ defmodule FrontierWeb.PageHTML do
 
   defp sources(1), do: "1 source"
   defp sources(count), do: "#{count} sources"
+
+  defp edition_count([]), do: "None yet"
+  defp edition_count([_edition]), do: "1 edition"
+  defp edition_count(editions), do: "#{length(editions)} editions"
+
+  defp edition_path(%Date{} = day), do: "/#{day.year}/#{day.month}/#{day.day}"
 end

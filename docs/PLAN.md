@@ -25,7 +25,7 @@ See `docs/adr/` for the decisions worth remembering and `GLOSSARY.md` for vocabu
 
 ## Architecture
 
-- **The edition is an immutable artifact.** The daily job builds a JSON + HTML bundle, content-addressed and stored. The web app renders it; archives and rollbacks are storage lookups.
+- **The edition is an immutable artifact.** The daily job builds a JSON + HTML bundle, content-addressed and stored under `priv/editions/<day>/<hash>`. The web app renders it; `/2026/11/22`, `/` and `/archive` read storage, not the database. Archives and rollbacks are storage lookups (ADR 0007).
 - **A printed day is frozen, not recomputed.** `raw_items` is current state and re-fetching moves it; a pool is rebuilt only for the current day. Phase 5's artifact freezes the pool, its members and roles, and a past day is replayed from the artifact (ADR 0004, 0005).
 - **The page is a projection of the latest run.** Each source's most recent successful fetch is the pool the page reads (ADR 0004); `raw_items` is current state, and history lives in `runs` and, later, in edition artifacts. Late Wire appends entries; nothing printed is mutated.
 - **Taste is a document, not a model.** Profiles are versioned JSON passed to the editor as context. No embeddings, no training.
@@ -40,7 +40,7 @@ See `docs/adr/` for the decisions worth remembering and `GLOSSARY.md` for vocabu
 | `raw_items` | fetched posts/articles/papers: source + external id (the identity), URL, canonical URL, content hash, kind, discussion URL, author, title, text excerpt, score, comment count, fetch-rank position, edition day, run id, first/last seen times |
 | `stories` | clustered events: edition day, cluster key, headline, canonical/primary URL, item and source counts, first/last published. Dek, summary, quote and section arrive with the editor |
 | `story_items` | story ↔ raw item membership and role (primary, discussion, duplicate) |
-| `editions` | day, published time, status (draft/published/late/frozen), artifact path + hash, desk note, stats |
+| `editions` | day, published time, status (draft/published/late/frozen), current artifact hash + path, built/frozen times, desk note, stats |
 | `edition_entries` | edition ↔ story placement: section, position, kind (lead/standard/ticker/quote), origin (edition/late/wire), and the editor's copy (dek, summary, quote, section). Editorial copy lives here, never on `stories`: the clusterer rewrites stories on every rebuild |
 | `readers` | signed reader ID, first/last seen |
 | `profiles` | reader ↔ versioned profile document |
@@ -59,7 +59,7 @@ See `docs/adr/` for the decisions worth remembering and `GLOSSARY.md` for vocabu
    *Where the quote is checked.* Feeds store an excerpt at fetch; HN link posts store only what the submission said. When the editor needs a verbatim quote it fetches the article once, keeps the quote and a bounded excerpt, and stores no full text (the compliance rule). Phase 4 owns this; phase 2 leaves the seam.
 
    *What "resolves" means.* A browser-like GET returning 2xx, or a source that answers 403/429 to automated clients and is confirmed alive in a browser. A 404 or a dead host drops the story; bot protection alone does not.
-6. **Assemble** — build edition artifact, mark published, archive.
+6. **Assemble** — build edition artifact, mark published, archive. `/YYYY/MM/DD` is the IST edition date; the archive lists published days.
 7. **Late Wire** (hourly 06:00–18:00) — new pool stories may be appended (max 3, visibly marked).
 8. **Freeze** (00:00) — edition closes; archive immutable.
 

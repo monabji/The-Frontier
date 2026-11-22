@@ -141,10 +141,10 @@ Expensive to change after the fact because other things hang off them: the editi
 **Build:** artifact JSON + HTML, content hash, storage, archive page, freeze-at-midnight semantics, reproducible rebuild.
 
 **Acceptance:**
-- [ ] the page renders from the artifact alone
-- [ ] the archive lists every published day
-- [ ] rebuilding a past day produces the same artifact hash from the same inputs
-- [ ] nothing rewrites a frozen edition
+- [x] the page renders from the artifact alone
+- [x] the archive lists every published day
+- [x] rebuilding a past day produces the same artifact hash from the same inputs
+- [x] nothing rewrites a frozen edition
 
 **Review gate:** URL shape and date semantics. Cheap now, permanent later.
 

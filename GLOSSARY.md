@@ -6,7 +6,10 @@ Vocabulary used across the codebase, issues and docs. When a term here competes 
 
 - **Edition** — the paper's unit of record: one immutable, dated bundle published at 06:00 IST, identified by its date (`2026-11-22`). After midnight it is frozen; corrections and late additions live in its log, never by rewriting it.
 - **Edition date** — the calendar day an edition belongs to, in India Standard Time (UTC+05:30, no daylight saving). The date line and the archive key both use the IST date; a UTC evening is already tomorrow's edition (`Frontier.Newsroom.Dateline`).
-- **Edition artifact** — the content-addressed JSON + rendered HTML bundle for one edition. Archives and rollbacks read artifacts, never re-query the database.
+- **Edition artifact** — the content-addressed JSON + rendered HTML bundle for one edition, stored under `priv/editions/<day>/<hash>` with a `current` pointer. Archives and rollbacks read artifacts, never re-query the database (ADR 0007).
+- **Artifact version** — one hash of an edition's artifact. A republish or Late Wire addition creates a new version and leaves the old one on disk.
+- **Freeze** — the midnight close of a day: a marker names the artifact that may never move. Nothing may assemble, publish or edit a frozen day.
+- **Archive** — the public list of published editions at `/archive`, one entry per day, newest first. Drafts are not in it.
 - **Late Wire** — stories added to the current day's edition between 06:00 and 18:00, capped at 3, visibly marked with the time added. Not a second edition.
 - **Quiet day** — an edition with fewer stories than target, labelled honestly in the desk note. Never padded.
 - **Desk note** — the two-sentence "From the desk" opening that reads the day's shape. Machine-written, always labelled as such.
@@ -51,7 +54,7 @@ Vocabulary used across the codebase, issues and docs. When a term here competes 
 - **Source adapter** — one module per source (HN, RSS feeds, arXiv, Bluesky, X) implementing fetch → normalize. Sources are peers; swapping one is configuration, and each run reports its own counts and failure.
 - **Raw item** — a fetched post, article or paper before clustering, identified by source and external id and refreshed in place; the run that last saw it is recorded.
 - **Cluster key** — the deterministic identity of a story: canonical URL, entity + time window, title similarity. Clustering is deterministic; there are no embeddings.
-- **Republish** — rebuilding and re-publishing an edition artifact from the recorded pool for the same day.
+- **Republish** — rebuilding and re-publishing an edition artifact from the recorded edition entries for the same day. The new version gets a new hash; the old one stays.
 - **Front page** — what the reader gets: one lead and a ranked index, built from each source's latest successful run for the edition day.
 - **Fetch** — one run of one source adapter: request, normalize, upsert, with a count of new and refreshed items and how long it took. A failed fetch is logged and reported, never fatal to the other sources.
 - **Source line** — the line under a front-page item that names the site it came from, the date it was posted, its score and its discussion. It is the item's provenance, not decoration.

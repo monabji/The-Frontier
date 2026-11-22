@@ -18,7 +18,9 @@ defmodule FrontierWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    get "/archive", PageController, :archive
     get "/pool", PoolController, :index
+    get "/:year/:month/:day", PageController, :show
   end
 
   # Other scopes may use custom stacks.

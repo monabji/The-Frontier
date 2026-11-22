@@ -23,6 +23,10 @@ defmodule Frontier.Editions.Edition do
     field :word_count, :integer, default: 0
     field :story_count, :integer, default: 0
     field :published_at, :utc_datetime
+    field :artifact_hash, :string
+    field :artifact_path, :string
+    field :built_at, :utc_datetime
+    field :frozen_at, :utc_datetime
 
     has_many :entries, Entry, preload_order: [asc: :section, asc: :position]
 
@@ -36,7 +40,11 @@ defmodule Frontier.Editions.Edition do
     :read_minutes,
     :word_count,
     :story_count,
-    :published_at
+    :published_at,
+    :artifact_hash,
+    :artifact_path,
+    :built_at,
+    :frozen_at
   ]
 
   @doc false

@@ -2,6 +2,7 @@ defmodule Frontier.EditionsTest do
   use Frontier.DataCase, async: true
 
   alias Frontier.ClusteringFixtures
+  alias Frontier.EditionStorage
   alias Frontier.Editions
   alias Frontier.Newsroom.Pool
   alias Frontier.Repo
@@ -11,6 +12,7 @@ defmodule Frontier.EditionsTest do
   @day ~D[2026-11-22]
 
   setup do
+    EditionStorage.tmp!(%{})
     ClusteringFixtures.seed!(@day)
 
     {:ok, _} =

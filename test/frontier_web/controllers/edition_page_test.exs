@@ -1,12 +1,14 @@
 defmodule FrontierWeb.EditionPageTest do
   use FrontierWeb.ConnCase
 
+  alias Frontier.EditionStorage
   alias Frontier.Editions
   alias Frontier.Editor
   alias Frontier.EditorFixtures
   alias Frontier.Newsroom.Dateline
 
   setup do
+    EditionStorage.tmp!(%{})
     day = Dateline.edition_date()
     stories = EditorFixtures.seed_stories(32, day)
     candidates = EditorFixtures.candidates(stories)
@@ -27,6 +29,8 @@ defmodule FrontierWeb.EditionPageTest do
         client: client,
         link_checker: fn _url -> {:ok, "https://example.com/final"} end
       )
+
+    {:ok, _} = Editions.assemble(day)
 
     %{day: day, edition: Editions.get(day)}
   end
@@ -119,6 +123,7 @@ defmodule FrontierWeb.EditionPageTest do
 
   describe "before an edition exists" do
     test "the clustered pool still prints", %{conn: conn} do
+      File.rm_rf!(Frontier.Editions.Store.root())
       Frontier.Repo.delete_all(Frontier.Editions.Entry)
       Frontier.Repo.delete_all(Frontier.Editions.Edition)
 

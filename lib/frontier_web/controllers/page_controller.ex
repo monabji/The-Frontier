@@ -2,32 +2,65 @@ defmodule FrontierWeb.PageController do
   use FrontierWeb, :controller
 
   alias Frontier.Editions
+  alias Frontier.Editions.Store
   alias Frontier.Newsroom.{Dateline, Pool}
   alias Frontier.Sources
 
-  def home(conn, _params) do
-    day = Sources.current_edition_day()
+  @doc """
+  The paper's front page.
 
-    case Editions.get(day) || Editions.latest() do
-      nil -> render_pool(conn, day)
-      edition -> render_edition(conn, edition)
+  When an artifact exists it is the paper: the route reads the stored JSON and
+  renders it, without touching the database. Until the first artifact is
+  assembled, the clustered pool is shown so the press is never blank.
+  """
+  def home(conn, _params) do
+    case Editions.latest_artifact() do
+      nil -> render_pool(conn, Sources.current_edition_day())
+      artifact -> render_artifact(conn, artifact)
     end
   end
 
-  defp render_edition(conn, edition) do
+  @doc "A dated edition: `/2026/11/22`."
+  def show(conn, %{"year" => year, "month" => month, "day" => day}) do
+    with {:ok, date} <- date(year, month, day),
+         artifact when not is_nil(artifact) <- Editions.artifact(date) do
+      render_artifact(conn, artifact)
+    else
+      _ -> not_found(conn)
+    end
+  end
+
+  @doc """
+  Every published day, newest first. The archive reads storage only: it is the
+  list of what the paper actually printed, not what the pool currently holds.
+  """
+  def archive(conn, _params) do
+    editions =
+      Store.days()
+      |> Enum.reverse()
+      |> Enum.map(fn day -> {day, Editions.artifact(day)} end)
+      |> Enum.reject(fn {_day, artifact} -> is_nil(artifact) or artifact.status == "draft" end)
+
     conn
-    |> assign(:page_title, "The Frontier — #{Dateline.format(edition.day)}")
+    |> assign(:page_title, "Archive — The Frontier")
+    |> assign(:page_description, "Every published edition of The Frontier, kept as printed.")
+    |> render(:archive, editions: editions)
+  end
+
+  defp render_artifact(conn, artifact) do
+    conn
+    |> assign(:page_title, "The Frontier — #{Dateline.format(artifact.day)}")
     |> assign(
       :page_description,
-      edition.desk_note ||
+      artifact.desk_note ||
         "The day in AI and technology, edited to be read in ten minutes. " <>
-          "Edition of #{Dateline.format(edition.day)}."
+          "Edition of #{Dateline.format(artifact.day)}."
     )
     |> render(:home,
-      date: edition.day,
-      edition: edition,
-      sections: Editions.sections(edition),
-      tickers: Editions.tickers(edition),
+      date: artifact.day,
+      edition: FrontierWeb.ArtifactHTML.edition_view(artifact),
+      sections: artifact.sections,
+      tickers: artifact.also_today,
       stories: []
     )
   end
@@ -49,5 +82,22 @@ defmodule FrontierWeb.PageController do
       tickers: [],
       stories: stories
     )
+  end
+
+  defp date(year, month, day) do
+    with {year, ""} <- Integer.parse(year),
+         {month, ""} <- Integer.parse(month),
+         {day, ""} <- Integer.parse(day),
+         {:ok, date} <- Date.new(year, month, day) do
+      {:ok, date}
+    else
+      _ -> :error
+    end
+  end
+
+  defp not_found(conn) do
+    conn
+    |> put_status(:not_found)
+    |> text("No edition was printed for that day.")
   end
 end

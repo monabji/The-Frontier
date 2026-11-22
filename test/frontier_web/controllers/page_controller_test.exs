@@ -2,10 +2,12 @@ defmodule FrontierWeb.PageControllerTest do
   use FrontierWeb.ConnCase
 
   alias Frontier.ClusteringFixtures
+  alias Frontier.EditionStorage
   alias Frontier.Newsroom.{Dateline, Pool}
   alias Frontier.Sources
 
   setup do
+    EditionStorage.tmp!(%{})
     day = Dateline.edition_date()
     items = ClusteringFixtures.seed!(day)
     Pool.rebuild(day, items: items)

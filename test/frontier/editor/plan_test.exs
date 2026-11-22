@@ -180,7 +180,7 @@ defmodule Frontier.Editor.PlanTest do
       assert plan.story_count == 2
     end
 
-    test "read time counts prose, not headlines or hidden ticker quotes" do
+    test "read time counts prose, not headlines or quotes" do
       entry = entry(1) |> Map.put("quote", "One two three four five.")
 
       ticker =
@@ -198,8 +198,8 @@ defmodule Frontier.Editor.PlanTest do
           pool(3)
         )
 
-      # 20 desk + 70 summary + 5 quote + 12 ticker = 107
-      assert plan.word_count == 107
+      # 20 desk + 70 summary + 12 ticker = 102; the 5-word quote is evidence.
+      assert plan.word_count == 102
     end
 
     test "a missing desk note is an issue, not an empty page" do

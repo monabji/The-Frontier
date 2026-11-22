@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{@page_title}</title>
+    <meta name="description" content={@page_description} />
+    <meta name="theme-color" content="#e3dfd4" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link
+      rel="preload"
+      href="/fonts/fraunces-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="preload"
+      href="/fonts/newsreader-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="/assets/css/app.css" />
+  </head>
+  <body>
+    <div class="sheet">
+      <PaperComponents.masthead date={@date} read_minutes={@edition.read_minutes} />
+
+      <main class="page">
+        <PaperComponents.edition edition={@edition} sections={@sections} tickers={@tickers} />
+      </main>
+
+      <PaperComponents.colophon />
+    </div>
+  </body>
+</html>

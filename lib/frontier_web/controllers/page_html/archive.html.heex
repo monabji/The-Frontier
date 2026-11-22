@@ -1,0 +1,37 @@
+<div class="sheet">
+  <header class="masthead">
+    <p class="flagline">
+      <span class="smallcaps">Archive</span>
+      <span class="smallcaps">Every edition, kept</span>
+    </p>
+
+    <h1 class="masthead__wordmark"><a href="/">The Frontier</a></h1>
+
+    <p class="masthead__motto">What the paper said, on the day it said it.</p>
+  </header>
+
+  <main class="page">
+    <h2 class="section-band">
+      <span class="smallcaps">Past editions</span>
+      <span class="smallcaps section-band__kicker">{edition_count(@editions)}</span>
+    </h2>
+
+    <p :if={@editions == []} class="empty">
+      No edition has been published yet. The archive begins with the first 06:00.
+    </p>
+
+    <ol class="archive">
+      <li :for={{day, artifact} <- @editions} class="archive__item">
+        <p class="smallcaps archive__meta">
+          {artifact.status} · {artifact.stats["stories"]} stories · {artifact.read_minutes} min
+        </p>
+        <h3 class="archive__date">
+          <a href={edition_path(day)}>{Frontier.Newsroom.Dateline.format(day)}</a>
+        </h3>
+        <p :if={artifact.desk_note} class="archive__note">{artifact.desk_note}</p>
+      </li>
+    </ol>
+  </main>
+
+  <PaperComponents.colophon />
+</div>

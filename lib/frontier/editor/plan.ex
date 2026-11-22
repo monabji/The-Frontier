@@ -243,14 +243,14 @@ defmodule Frontier.Editor.Plan do
     end
   end
 
-  # Read time counts what the reader reads as prose: the desk note, each
-  # story's summary and its printed quote, and the ticker lines. Headlines are
-  # labels, and a ticker's verified quote is not printed, so neither is part of
-  # the advertised length.
+  # Read time counts the prose the plan budgets: the desk note, each story's
+  # summary, and the ticker lines. Headlines are labels and quotes are evidence
+  # set beside the prose, so neither is part of the advertised length. PLAN's
+  # 1,800–2,000 words for a full paper is this number.
   defp word_count(desk_note, entries, tickers) do
     main =
       Enum.reduce(entries, Sections.word_count(desk_note), fn entry, total ->
-        total + entry.word_count + Sections.word_count(entry.quote)
+        total + entry.word_count
       end)
 
     Enum.reduce(tickers, main, fn ticker, total -> total + ticker.word_count end)

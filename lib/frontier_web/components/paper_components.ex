@@ -241,7 +241,7 @@ defmodule FrontierWeb.PaperComponents do
         The Frontier. Set in Fraunces and Newsreader; composed in Elixir.
       </p>
       <p class="colophon__line colophon__line--quiet">
-        One page, once a day. It ends at midnight.
+        One page, once a day. It ends at midnight. <a href="/archive">Past editions</a>.
       </p>
     </footer>
     """

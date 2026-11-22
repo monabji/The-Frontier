@@ -24,6 +24,9 @@ config :logger, level: :warning
 # `{:error, :network_disabled}` instead of a real request.
 config :frontier, network: false
 
+# Artifact storage is files; tests that write editions get a throwaway root.
+config :frontier, :edition_storage, Path.expand("../tmp/editions_test", __DIR__)
+
 # Oban runs no jobs and no plugins in tests: jobs are executed explicitly with
 # `Oban.Testing` so `mix test` stays deterministic and offline.
 config :frontier, Oban, testing: :manual, queues: false, plugins: false
