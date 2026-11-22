@@ -120,11 +120,11 @@ Expensive to change after the fact because other things hang off them: the editi
 **Build:** structured-output schema, prompts, section caps and word budgets, grounding checks (quote is a substring, link resolves, entities present), drop-and-log on failure, cost per run.
 
 **Acceptance:**
-- [ ] every printed story has a verified quote and a resolving link
-- [ ] an injected hallucinated quote is rejected, not printed
-- [ ] the edition reads in 8–10 minutes
-- [ ] cost and token use are recorded per run
-- [ ] a quiet day produces a shorter paper with an honest desk note
+- [x] every printed story has a verified quote and a resolving link
+- [x] an injected hallucinated quote is rejected, not printed
+- [x] the edition reads in 8–10 minutes
+- [x] cost and token use are recorded per run
+- [x] a quiet day produces a shorter paper with an honest desk note
 
 **Review gate:** read it as a reader, not a developer. Voice, summary quality, section balance. Change prompts and caps here; never relax grounding.
 
