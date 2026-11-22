@@ -1,4 +1,4 @@
-<img src="assets/icon.svg" width="64" height="64" alt="">
+
 
 # The Frontier
 
@@ -16,13 +16,7 @@ mix phx.server
 
 Open http://localhost:4000.
 
-## Docs
 
-- [Plan](docs/PLAN.md)
-- [Phases](PHASES.md)
-- [Glossary](GLOSSARY.md)
-- [Decisions](docs/adr/)
-- [Design](docs/DESIGN.md)
 
 ## Done
 
