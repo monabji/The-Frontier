@@ -32,14 +32,28 @@ defmodule Frontier.Editor.Client.HTTP do
   @doc "The request body, exposed so a test can assert the shape."
   @spec post_body([map()], keyword(), keyword()) :: {:ok, map()} | {:error, term()}
   def post_body(messages, config \\ [], opts \\ []) do
-    {:ok,
-     %{
-       model: Keyword.get(opts, :model, config[:model] || @default_model),
-       messages: messages,
-       temperature: Keyword.get(opts, :temperature, config[:temperature] || 0.4),
-       max_tokens: Keyword.get(opts, :max_tokens, config[:max_tokens] || 8_000),
-       response_format: %{type: "json_object"}
-     }}
+    body = %{
+      model: Keyword.get(opts, :model, config[:model] || @default_model),
+      messages: messages,
+      temperature: Keyword.get(opts, :temperature, config[:temperature] || 0.4),
+      max_tokens: Keyword.get(opts, :max_tokens, config[:max_tokens] || 8_000)
+    }
+
+    # A plain-line reply is not JSON; asking for a JSON object would fight the
+    # format the keyless prompt requests.
+    body =
+      if Keyword.get(opts, :json_object, true) do
+        Map.put(body, :response_format, %{type: "json_object"})
+      else
+        body
+      end
+
+    # A reasoning model spends the answer budget thinking. When the endpoint
+    # caps the reply, ask for less thinking so the JSON fits.
+    case Keyword.get(opts, :reasoning_effort) || config[:reasoning_effort] do
+      nil -> {:ok, body}
+      effort -> {:ok, Map.put(body, :reasoning_effort, effort)}
+    end
   end
 
   @doc "Reads token usage from a completion, tolerating absent usage."
@@ -73,9 +87,10 @@ defmodule Frontier.Editor.Client.HTTP do
   defp api_key(config) do
     key = config[:api_key] || System.get_env("OPENAI_API_KEY")
 
-    case key do
-      value when is_binary(value) and value != "" -> {:ok, value}
-      _ -> {:error, :missing_api_key}
+    cond do
+      is_binary(key) and key != "" -> {:ok, key}
+      config[:allow_missing_api_key] -> {:ok, nil}
+      true -> {:error, :missing_api_key}
     end
   end
 
@@ -84,10 +99,9 @@ defmodule Frontier.Editor.Client.HTTP do
       String.trim_trailing(config[:base_url] || "https://api.openai.com/v1", "/") <>
         "/chat/completions"
 
-    headers = [
-      {"authorization", "Bearer " <> api_key},
-      {"content-type", "application/json"}
-    ]
+    headers =
+      [{"content-type", "application/json"}] ++
+        if(api_key, do: [{"authorization", "Bearer " <> api_key}], else: [])
 
     http = Keyword.get(opts, :http, &Frontier.HTTP.post/4)
     timeout = Keyword.get(opts, :timeout, config[:timeout] || 180_000)

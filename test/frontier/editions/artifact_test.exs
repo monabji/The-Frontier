@@ -81,13 +81,13 @@ defmodule Frontier.Editions.ArtifactTest do
       artifact =
         Artifact.build(
           edition([
-            entry(%{section: "Back Page", position: 1, kind: "standard"}),
+            entry(%{section: "Security", position: 1, kind: "standard"}),
             entry(%{section: "Front Page", position: 1, kind: "lead"}),
             entry(%{section: "Research", position: 1, kind: "standard"})
           ])
         )
 
-      assert Enum.map(artifact.sections, &elem(&1, 0)) == ["Front Page", "Research", "Back Page"]
+      assert Enum.map(artifact.sections, &elem(&1, 0)) == ["Front Page", "Research", "Security"]
     end
 
     test "an entry carries its own link and provenance, not a story id" do

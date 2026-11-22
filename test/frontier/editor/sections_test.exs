@@ -4,46 +4,67 @@ defmodule Frontier.Editor.SectionsTest do
   alias Frontier.Editor.Sections
 
   describe "the paper's sections" do
-    test "are the seven the plan names, in printing order" do
+    test "are the eleven beats the plan names, in printing order" do
       assert Sections.names() == [
                "Front Page",
-               "Models & Releases",
+               "Models & Harnesses",
                "Research",
-               "Tooling & Dev",
-               "The Discourse",
-               "The Long Read",
-               "Back Page"
+               "Security",
+               "Game Development",
+               "App Development",
+               "FOSS",
+               "DevOps",
+               "Frontier Science",
+               "Design",
+               "Trending"
              ]
     end
 
     test "each has the cap the plan sets" do
       assert Sections.cap("Front Page") == 3
-      assert Sections.cap("Models & Releases") == 4
+      assert Sections.cap("Models & Harnesses") == 3
       assert Sections.cap("Research") == 3
-      assert Sections.cap("Tooling & Dev") == 4
-      assert Sections.cap("The Discourse") == 3
-      assert Sections.cap("The Long Read") == 1
-      assert Sections.cap("Back Page") == 4
+      assert Sections.cap("Security") == 2
+      assert Sections.cap("Game Development") == 2
+      assert Sections.cap("App Development") == 2
+      assert Sections.cap("FOSS") == 2
+      assert Sections.cap("DevOps") == 2
+      assert Sections.cap("Frontier Science") == 2
+      assert Sections.cap("Design") == 2
+      assert Sections.cap("Trending") == 2
+    end
+
+    test "the caps leave room for twenty-one stories without filling every beat" do
+      total = Sections.names() |> Enum.map(&Sections.cap/1) |> Enum.sum()
+
+      assert total > 21
     end
 
     test "Also Today is a strip, not a section with a cap" do
       refute Sections.section?("Also Today")
-      assert Sections.ticker_cap() == 15
+      assert Sections.ticker_cap() == 5
     end
 
     test "the first Front Page entry is the lead, the rest are standard" do
       assert Sections.kind("Front Page", 1) == :lead
       assert Sections.kind("Front Page", 2) == :standard
       assert Sections.kind("Research", 1) == :standard
+      assert Sections.kind("Security", 1) == :standard
       assert Sections.kind("Also Today", 1) == :ticker
     end
   end
 
   describe "word budgets" do
-    test "a lead gets 120–150 words, a standard story 60–80, a ticker 12–18" do
-      assert Sections.word_range(:lead) == 120..150
-      assert Sections.word_range(:standard) == 60..80
+    test "a lead gets 140–175 words, a standard story 80–100, a ticker 12–18" do
+      assert Sections.word_range(:lead) == 140..175
+      assert Sections.word_range(:standard) == 80..100
       assert Sections.word_range(:ticker) == 12..18
+    end
+
+    test "a full paper of twenty-one stories reads in eight to ten minutes" do
+      words = 150 + 20 * 85 + 20
+
+      assert Sections.read_minutes(words) in 8..10
     end
 
     test "word count is words, not characters, and markup-free" do

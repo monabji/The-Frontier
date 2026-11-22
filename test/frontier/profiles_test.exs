@@ -33,10 +33,10 @@ defmodule Frontier.ProfilesTest do
 
     test "a second save is a new version, not an edit", %{reader: reader} do
       {:ok, _} = Profiles.onboard(reader, ["models"], "")
-      {:ok, profile} = Profiles.onboard(reader, ["tooling"], "")
+      {:ok, profile} = Profiles.onboard(reader, ["foss"], "")
 
       assert profile.version == 2
-      assert profile.document["chips"] == ["models", "tooling"]
+      assert Enum.sort(profile.document["chips"]) == ["foss", "models"]
       assert Repo.aggregate(Profile, :count) == 2
     end
   end
@@ -107,7 +107,7 @@ defmodule Frontier.ProfilesTest do
       summary = Profiles.summary(reader)
 
       assert summary.version == 2
-      assert summary.chips == [{"models", "Models & releases"}, {"research", "Research"}]
+      assert summary.chips == [{"models", "Models & harnesses"}, {"research", "AI research"}]
       assert summary.trusted_accounts == ["example.com"]
       assert summary.thumb_counts == %{"up" => 1, "down" => 0}
     end

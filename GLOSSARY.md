@@ -28,8 +28,9 @@ Vocabulary used across the codebase, issues and docs. When a term here competes 
 - **Story item** — a raw item's membership in a story, with its role: `primary` (the publication whose link is printed), `discussion` (an aggregator's thread), or `duplicate` (another source carrying the same event).
 - **The pool** — the day's stories before the editor ranks and places them, inspected at `/pool`.
 - **Candidate pool** — the day's clustered stories (~150) before the editor picks and places them.
-- **Section** — Front Page, Models & Releases, Research, Tooling & Dev, The Discourse, The Long Read, Back Page. Fixed names, no quotas: a section with nothing real disappears for the day.
-- **Also Today** — the one-line ticker for real-but-minor items; 10–15 entries, never padded.
+- **Section** — one of the paper's eleven beats: Front Page, Models & Harnesses, Research, Security, Game Development, App Development, FOSS, DevOps, Frontier Science, Design, Trending. Fixed names, no quotas: a section with nothing real disappears for the day (ADR 0011).
+- **Beat** — the subject a section owns. A story is printed in the one section whose beat it belongs to, whichever company or model it mentions.
+- **Also Today** — the one-line ticker for real-but-minor items; up to 5 entries, never padded.
 - **Lead** — the Front Page story above the fold. Until the editor writes summaries it is the newest item, set at display scale with a rule beneath it; the drop cap and dek return with the editor.
 - **Source quote** — one verbatim line from the fetched source text, shown under the summary. It grounds the summary and is checked mechanically.
 - **Discourse** — 2–3 quoted reactions to a story, set as typeset pull-quotes with handle and link, not embed widgets.
@@ -38,7 +39,10 @@ Vocabulary used across the codebase, issues and docs. When a term here competes 
 
 ## The editor
 
-- **The editor** — the LLM pipeline stage that ranks the pool, assigns sections, writes headlines, summaries and the desk note, and picks quotes. It never invents facts; every claim traces to a source or a quote.
+- **The editor** — the pipeline stage that ranks the pool, assigns sections, writes headlines, summaries and the desk note, and picks quotes. It never invents facts; every claim traces to a source or a quote. The writing may come from a model endpoint or from a person at the desk; the checks do not know the difference.
+- **The desk** — the editor run with a person in the model's place. `mix frontier.brief` writes the prompt; `mix frontier.desk --reply` or the token-gated `/desk` page takes the JSON a chat window returned. Same sections, caps and grounding checks as a live run; recorded as `desk:<assistant>` at zero cost.
+- **Brief** — the day's editing prompt as a file or a page: the paper's furniture, the word budgets, the quote rule and every candidate story with its id, link and source text. What the desk pastes into a chat window.
+- **Pasted edition** — an edition whose copy came from a chat window rather than a model API. Not a lower grade of paper: every quote is still verbatim and every link still resolves, and the run log names the assistant.
 - **Candidate** — a pool story the editor may choose, carrying its primary link, provenance and enough source text to quote. A story whose text cannot be read is not a candidate.
 - **Edition plan** — the validated placement of the editor's reply: sections, caps, positions and the lead. The model proposes; the plan decides.
 - **Grounding check** — mechanical validation: quote is a substring of source text, link resolves, entities appear in the source, word budgets respected. Failures send the story back once, not to print. See ADR 0006.
@@ -49,14 +53,14 @@ Vocabulary used across the codebase, issues and docs. When a term here competes 
 ## Readers
 
 - **Reader ID** — a random, signed cookie identity. There are no accounts, passwords or emails in v1. The row is created on the first save, not on arrival.
-- **Chip** — one of eight broad interests a reader can pick at onboarding: models, research, tooling, policy, startups, hardware, security, culture.
+- **Chip** — one of ten broad interests a reader can pick at onboarding, one per beat: models, research, security, games, apps, foss, devops, science, design, trending.
 - **Profile version** — one saved snapshot of the taste document. Saves append a version; they never edit one.
 - **Your paper link** — a saveable recovery link that re-binds a reader ID, so a cleared browser is not a lost profile. It is a key: whoever holds it can read that profile.
 - **Taste profile** — a readable, versioned document per reader built from append-only events: interest chips, trusted accounts, avoid list, thumb history. Not a model, not embeddings; it is passed to the editor as context.
 - **Thumb** — an explicit up/down on a story; appends an event and bumps the profile version, and is reflected in tomorrow's fold, never today's printed page.
 - **Forget** — deleting a reader row and, by cascade, every profile version and event; the cookie is cleared at the same time.
 - **Fold** — a reader's personalized selection and ordering drawn from the shared pool. The shared spine stays identical for everyone.
-- **Shared spine** — Front Page, Models & Releases, Research, Tooling & Dev: the same stories for every reader.
+- **Shared spine** — Front Page, Models & Harnesses, Research, Security, Frontier Science: the same stories for every reader.
 - **Night Edition** — the dark theme.
 
 ## Sources and infrastructure

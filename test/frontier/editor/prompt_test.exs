@@ -25,11 +25,12 @@ defmodule Frontier.Editor.PromptTest do
         Prompt.messages(@day, [candidate(1)])
 
       assert brief =~ "Front Page: 3"
-      assert brief =~ "The Long Read: 1"
-      assert brief =~ "120–150 words"
-      assert brief =~ "60–80 words"
+      assert brief =~ "Security: 2"
+      assert brief =~ "Trending: 2"
+      assert brief =~ "140–175 words"
+      assert brief =~ "80–100 words"
       assert brief =~ "12–18 words"
-      assert brief =~ "maximum 15 entries"
+      assert brief =~ "maximum 5 entries"
       assert brief =~ "Sunday, 22 November 2026"
     end
 
@@ -38,6 +39,8 @@ defmodule Frontier.Editor.PromptTest do
 
       assert system =~ "never invent"
       assert brief =~ "character-for-character"
+      assert brief =~ "Choose 21 stories"
+      assert brief =~ "Frontier Science"
       assert brief =~ "no ellipses"
       assert brief =~ ~s("story_id")
       assert brief =~ ~s("desk_note")

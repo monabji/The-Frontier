@@ -1,7 +1,12 @@
 defmodule Frontier.Editor.Sections do
   @moduledoc """
-  The paper's fixed furniture: seven sections, their caps, and the word budgets
+  The paper's fixed furniture: eleven sections, their caps, and the word budgets
   that make an edition read in eight to ten minutes.
+
+  A section is a beat, not a format: models, AI research, security, game
+  development, app development, open source, DevOps, frontier science, design
+  and what technology is arguing about today. Front Page is where the day's
+  three biggest stories sit, whatever their beat.
 
   These numbers are editorial, not technical. They live here so the prompt, the
   plan check and the read-time estimate cannot drift apart: a section that is
@@ -10,30 +15,38 @@ defmodule Frontier.Editor.Sections do
 
   @names [
     "Front Page",
-    "Models & Releases",
+    "Models & Harnesses",
     "Research",
-    "Tooling & Dev",
-    "The Discourse",
-    "The Long Read",
-    "Back Page"
+    "Security",
+    "Game Development",
+    "App Development",
+    "FOSS",
+    "DevOps",
+    "Frontier Science",
+    "Design",
+    "Trending"
   ]
 
   @caps %{
     "Front Page" => 3,
-    "Models & Releases" => 4,
+    "Models & Harnesses" => 3,
     "Research" => 3,
-    "Tooling & Dev" => 4,
-    "The Discourse" => 3,
-    "The Long Read" => 1,
-    "Back Page" => 4
+    "Security" => 2,
+    "Game Development" => 2,
+    "App Development" => 2,
+    "FOSS" => 2,
+    "DevOps" => 2,
+    "Frontier Science" => 2,
+    "Design" => 2,
+    "Trending" => 2
   }
 
-  @ticker_cap 15
+  @ticker_cap 5
   @words_per_minute 220
 
-  @word_ranges %{lead: 120..150, standard: 60..80, ticker: 12..18}
+  @word_ranges %{lead: 140..175, standard: 80..100, ticker: 12..18}
 
-  @doc "The seven sections, in the order the paper prints them."
+  @doc "The eleven sections, in the order the paper prints them."
   @spec names() :: [String.t()]
   def names, do: @names
 

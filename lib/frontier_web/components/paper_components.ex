@@ -246,16 +246,6 @@ defmodule FrontierWeb.PaperComponents do
               <p :if={entry.dek} class="story__dek">{entry.dek}</p>
               <p class="story__summary">{entry.summary}</p>
 
-              <blockquote
-                :if={entry.quote && section == "The Long Read"}
-                class="story__quote broadsheet__quote"
-              >
-                <p>{entry.quote}</p>
-                <cite class="smallcaps">
-                  {entry.source_label || Canonical.host(entry.url)}
-                </cite>
-              </blockquote>
-
               <.entry_source entry={entry} />
               <.thumb_actions
                 :if={@thumbs}

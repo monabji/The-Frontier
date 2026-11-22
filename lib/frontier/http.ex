@@ -204,6 +204,48 @@ defmodule Frontier.HTTP do
   @doc false
   def network?, do: Application.get_env(:frontier, :network, true)
 
+  @doc """
+  The CA certificates to verify peers against.
+
+  OTP's `:public_key.cacerts_get/0` reads the OS store, but a minimal container
+  or a broken distro package can return a handful of unrelated roots, which
+  turns every HTTPS link into an `unknown_ca` failure and drops the whole paper.
+  Prefer the standard bundle when it exists, and fall back to OTP only when
+  there is nothing to read.
+  """
+  @spec cacerts() :: [binary()]
+  def cacerts do
+    case :persistent_term.get({__MODULE__, :cacerts}, nil) do
+      nil ->
+        certs = load_cacerts()
+        :persistent_term.put({__MODULE__, :cacerts}, certs)
+        certs
+
+      certs ->
+        certs
+    end
+  end
+
+  defp load_cacerts do
+    bundle = System.get_env("SSL_CERT_FILE") || "/etc/ssl/certs/ca-certificates.crt"
+
+    with {:ok, pem} <- File.read(bundle),
+         certs when certs != [] <- pem_certs(pem) do
+      certs
+    else
+      _other -> :public_key.cacerts_get()
+    end
+  end
+
+  defp pem_certs(pem) do
+    pem
+    |> :public_key.pem_decode()
+    |> Enum.flat_map(fn
+      {:Certificate, der, _encryption} -> [der]
+      _entry -> []
+    end)
+  end
+
   defp http_options(timeout) do
     [
       timeout: timeout,
@@ -213,7 +255,7 @@ defmodule Frontier.HTTP do
       autoredirect: false,
       ssl: [
         verify: :verify_peer,
-        cacerts: :public_key.cacerts_get(),
+        cacerts: cacerts(),
         depth: 3,
         customize_hostname_check: [
           match_fun: :public_key.pkix_verify_hostname_match_fun(:https)

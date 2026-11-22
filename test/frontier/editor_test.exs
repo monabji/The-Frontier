@@ -43,11 +43,11 @@ defmodule Frontier.EditorTest do
                edit(candidates, fn _messages, _opts -> reply(payload) end)
 
       assert edition.status == "draft"
-      assert plan.story_count == 22
-      assert length(plan.tickers) == 10
+      assert plan.story_count == 21
+      assert length(plan.tickers) == 5
       assert edition.desk_note =~ "busy morning"
       assert report.read_minutes in 8..10
-      assert report.printed == 22
+      assert report.printed == 21
       assert report.rejected == 0
       assert report.input_tokens == 1_200
       assert report.output_tokens == 400
@@ -65,7 +65,7 @@ defmodule Frontier.EditorTest do
       assert run.input_tokens == 1_200
       assert run.output_tokens == 400
       assert run.cost_micros == 420
-      assert run.inserted == 32
+      assert run.inserted == 26
       assert run.rejected == 0
     end
 
@@ -95,7 +95,7 @@ defmodule Frontier.EditorTest do
                  link_checker: links_ok()
                )
 
-      assert plan.story_count == 22
+      assert plan.story_count == 21
     end
   end
 
@@ -114,7 +114,7 @@ defmodule Frontier.EditorTest do
       assert {:ok, %{edition: edition, plan: plan}} =
                edit(candidates, fn _m, _o -> reply(payload) end)
 
-      assert plan.story_count == 21
+      assert plan.story_count == 20
       refute Enum.any?(edition.entries, &(&1.story_id == bad["story_id"]))
 
       assert [rejection] = Editions.rejections(@day)
@@ -145,7 +145,7 @@ defmodule Frontier.EditorTest do
 
       assert {:ok, %{plan: plan, edition: edition}} = edit(candidates, client)
 
-      assert plan.story_count == 22
+      assert plan.story_count == 21
       assert Editions.rejections(@day) == []
       assert Enum.find(edition.entries, &(&1.story_id == first["story_id"])).quote == good_quote
       assert Agent.get(counter, & &1) == 1
@@ -168,7 +168,7 @@ defmodule Frontier.EditorTest do
 
       assert {:ok, %{plan: plan, edition: edition}} = edit(candidates, client)
 
-      assert plan.story_count == 22
+      assert plan.story_count == 21
       assert Editions.rejections(@day) == []
       assert Enum.find(edition.entries, &(&1.story_id == first["story_id"])).quote == good_quote
     end
@@ -195,7 +195,7 @@ defmodule Frontier.EditorTest do
                  link_checker: checker
                )
 
-      assert plan.story_count == 21
+      assert plan.story_count == 20
       assert Enum.any?(Editions.rejections(@day), &(&1.reason == "unresolved_link"))
 
       # A dead link cannot be repaired by rewriting copy, so it costs one call.
@@ -233,7 +233,7 @@ defmodule Frontier.EditorTest do
       end
 
       assert {:ok, %{plan: plan}} = edit(candidates, client)
-      assert plan.story_count == 22
+      assert plan.story_count == 21
       assert Agent.get(counter, & &1) == 2
     end
 
@@ -255,7 +255,7 @@ defmodule Frontier.EditorTest do
       assert {:ok, %{edition: edition}} = edit(candidates, client)
 
       entry = Enum.find(edition.entries, &(&1.story_id == second["story_id"]))
-      assert entry.word_count == 70
+      assert entry.word_count == 85
       assert Editions.rejections(@day) == []
     end
   end

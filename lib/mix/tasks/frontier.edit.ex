@@ -40,7 +40,7 @@ defmodule Mix.Tasks.Frontier.Edit do
       [
         client: client,
         repair: Keyword.get(opts, :repair, true),
-        limit: opts[:limit] || 40
+        limit: opts[:limit] || 100
       ]
       |> maybe_fixture(opts[:fixture])
 

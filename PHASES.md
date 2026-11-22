@@ -20,7 +20,9 @@ The build slices live in [BUILD.md](BUILD.md); this file is the working rhythm a
 | Typography, masthead, section treatment | Phase 0 |
 | Source mix (which feeds, how many) | Phases 1–2 |
 | Cluster thresholds (over/under-merging) | Phase 3 |
+| Beat taxonomy (which sections, their caps) | Phase 4 |
 | Prompt voice, section caps, word budgets | Phase 4 |
+| Which feeds serve which beat | Phases 1–2, then on evidence |
 | URL shape and date semantics | Phase 5 |
 | Publication time, alert channel | Phase 6 |
 | Onboarding chips and questions | Phase 7 |
@@ -115,7 +117,7 @@ Expensive to change after the fact because other things hang off them: the editi
 
 **Goal:** a real edition: ranked, sectioned, summarized, quoted, grounded.
 
-**You'll see:** the paper you subscribed to in your head — 22–25 stories, seven sections, desk note, Also Today, 8–10 minutes.
+**You'll see:** the paper you subscribed to in your head — 20–22 stories across eleven beats, desk note, Also Today, 8–10 minutes.
 
 **Build:** structured-output schema, prompts, section caps and word budgets, grounding checks (quote is a substring, link resolves, entities present), drop-and-log on failure, cost per run.
 
@@ -196,7 +198,7 @@ Expensive to change after the fact because other things hang off them: the editi
 
 **Goal:** two readers get different papers where taste belongs, and the same paper where facts do.
 
-**You'll see:** with two profiles, the same Front Page, Models and Research; a different Discourse, Long Read and Back Page.
+**You'll see:** with two profiles, the same Front Page, Models & Harnesses, Research, Security and Frontier Science; different smaller beats and emphasis.
 
 **Build:** lazy fold generation per reader per day, caching, deterministic fallback when the editor call fails, cost logging.
 

@@ -20,7 +20,7 @@ defmodule FrontierWeb.ReaderFlowTest do
     test "a visit stores nothing; a save stores chips, accounts and one version", %{conn: conn} do
       html = get(conn, ~p"/start") |> html_response(200)
 
-      assert html =~ "Models &amp; releases"
+      assert html =~ "Models &amp; harnesses"
       assert html =~ "No email, no password, no account"
       assert html =~ ~s(href="/privacy")
       assert Repo.aggregate(Readers.Reader, :count) == 0
@@ -41,8 +41,8 @@ defmodule FrontierWeb.ReaderFlowTest do
       assert Repo.aggregate(Event, :count) == 3
 
       html = get(recycle(conn), ~p"/your-paper") |> html_response(200)
-      assert html =~ "Models &amp; releases"
-      assert html =~ "Research"
+      assert html =~ "Models &amp; harnesses"
+      assert html =~ "AI research"
       assert html =~ "simonwillison.net"
       assert html =~ "/recover/"
     end
@@ -108,7 +108,7 @@ defmodule FrontierWeb.ReaderFlowTest do
       conn =
         post(conn, ~p"/start", %{
           "_csrf_token" => csrf(html),
-          "chips" => ["models", "tooling"],
+          "chips" => ["models", "foss"],
           "trusted_accounts" => "example.com"
         })
 
@@ -131,8 +131,8 @@ defmodule FrontierWeb.ReaderFlowTest do
       assert redirected_to(restored) == "/your-paper"
 
       html = get(recycle(restored), ~p"/your-paper") |> html_response(200)
-      assert html =~ "Models &amp; releases"
-      assert html =~ "Tools &amp; code"
+      assert html =~ "Models &amp; harnesses"
+      assert html =~ "Open source"
       assert html =~ "example.com"
     end
 
@@ -162,8 +162,8 @@ defmodule FrontierWeb.ReaderFlowTest do
       assert response(refused, 409) =~ "different paper"
 
       html = get(recycle(refused), ~p"/your-paper") |> html_response(200)
-      assert html =~ "Models &amp; releases"
-      refute html =~ "Research"
+      assert html =~ "Models &amp; harnesses"
+      refute html =~ "AI research"
     end
 
     test "a tampered recovery link is refused" do

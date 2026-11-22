@@ -44,7 +44,7 @@ defmodule Frontier.DailyTest do
           "story_id" => story.id,
           "section" => "Research",
           "headline" => story.headline,
-          "summary" => String.duplicate("word ", 70),
+          "summary" => String.duplicate("word ", 85),
           "quote" => FixtureSource.quote()
         }
       ],

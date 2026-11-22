@@ -10,13 +10,24 @@ defmodule Frontier.Sources.RSSTest do
       feeds = RSS.feeds()
       keys = Enum.map(feeds, & &1.key())
 
-      assert length(feeds) == 6
-      assert length(Enum.uniq(keys)) == 6
+      assert length(feeds) == 24
+      assert length(Enum.uniq(keys)) == 24
       assert "rss:openai" in keys
       assert "rss:arstechnica" in keys
       assert Enum.all?(feeds, &String.starts_with?(&1.key(), "rss:"))
       assert Enum.all?(feeds, &(&1.label() != ""))
       assert Enum.all?(feeds, &String.starts_with?(&1.url(), "https://"))
+    end
+
+    test "every beat of the paper has a feed" do
+      keys = RSS.feeds() |> Enum.map(& &1.key())
+
+      for key <- ~w(rss:openai rss:deepmind rss:thehackernews rss:krebs rss:godot
+                    rss:gamedeveloper rss:androiddev rss:reactnative rss:phoronix rss:lwn
+                    rss:kubernetes rss:cncf rss:quanta rss:ieeespectrum
+                    rss:quantumcomputingreport rss:coindesk rss:80lv rss:smashing rss:blender) do
+        assert key in keys, "#{key} is missing from the feed list"
+      end
     end
   end
 

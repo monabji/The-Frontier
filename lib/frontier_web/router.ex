@@ -21,6 +21,9 @@ defmodule FrontierWeb.Router do
     get "/", PageController, :home
     get "/archive", PageController, :archive
     get "/pool", PoolController, :index
+    get "/desk", DeskController, :new
+    post "/desk", DeskController, :create
+    post "/desk/publish", DeskController, :publish
     get "/start", ReaderController, :new
     post "/start", ReaderController, :create
     get "/your-paper", ReaderController, :paper

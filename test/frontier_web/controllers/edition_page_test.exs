@@ -54,12 +54,16 @@ defmodule FrontierWeb.EditionPageTest do
       sections = doc |> LazyHTML.query(".section-band") |> LazyHTML.text()
 
       assert sections =~ "Front Page"
-      assert sections =~ "Models & Releases"
+      assert sections =~ "Models & Harnesses"
       assert sections =~ "Research"
-      assert sections =~ "Tooling & Dev"
-      assert sections =~ "The Discourse"
-      assert sections =~ "The Long Read"
-      assert sections =~ "Back Page"
+      assert sections =~ "Security"
+      assert sections =~ "Game Development"
+      assert sections =~ "App Development"
+      assert sections =~ "FOSS"
+      assert sections =~ "DevOps"
+      assert sections =~ "Frontier Science"
+      assert sections =~ "Design"
+      assert sections =~ "Trending"
       assert sections =~ "Also Today"
 
       assert sections =~ ~r/Front Page.*Also Today/s
@@ -72,7 +76,7 @@ defmodule FrontierWeb.EditionPageTest do
       lead_summary =
         doc |> LazyHTML.query(".story--lead .story__summary") |> LazyHTML.text()
 
-      assert String.split(lead_summary, ~r/\s+/, trim: true) |> length() == 135
+      assert String.split(lead_summary, ~r/\s+/, trim: true) |> length() == 150
 
       assert doc |> LazyHTML.query(".story--lead .story__quote p") |> LazyHTML.text() =~
                "Quokka1 Zephyr1 opens a bakery in Lisbon."
@@ -94,7 +98,7 @@ defmodule FrontierWeb.EditionPageTest do
       html = get(conn, ~p"/") |> html_response(200)
       doc = LazyHTML.from_document(html)
 
-      assert doc |> LazyHTML.query(".ticker__item") |> Enum.count() == 10
+      assert doc |> LazyHTML.query(".ticker__item") |> Enum.count() == 5
       assert doc |> LazyHTML.query(".ticker__line") |> LazyHTML.text() =~ "word word"
     end
 
@@ -104,7 +108,7 @@ defmodule FrontierWeb.EditionPageTest do
 
       assert doc |> LazyHTML.query("h1") |> LazyHTML.text() |> String.contains?("The Frontier")
       assert doc |> LazyHTML.query("h2") |> LazyHTML.text() |> String.contains?("Front Page")
-      assert doc |> LazyHTML.query("h3.story__headline") |> Enum.count() == 22
+      assert doc |> LazyHTML.query("h3.story__headline") |> Enum.count() == 21
     end
 
     test "no story is printed twice", %{conn: conn} do
@@ -116,7 +120,7 @@ defmodule FrontierWeb.EditionPageTest do
         |> LazyHTML.query(".story__headline a, .ticker__headline a")
         |> LazyHTML.attribute("href")
 
-      assert length(links) == 32
+      assert length(links) == 26
       assert length(links) == length(Enum.uniq(links))
     end
   end
@@ -147,8 +151,8 @@ defmodule FrontierWeb.EditionPageTest do
       assert doc |> LazyHTML.query(".broadsheet__rail") |> Enum.count() == 1
       assert doc |> LazyHTML.query(".broadsheet__mosaic") |> Enum.count() == 1
       assert doc |> LazyHTML.query(".broadsheet__inside") |> Enum.count() == 1
-      assert doc |> LazyHTML.query(".broadsheet .story__headline") |> Enum.count() == 22
-      assert doc |> LazyHTML.query(".broadsheet .ticker__item") |> Enum.count() == 10
+      assert doc |> LazyHTML.query(".broadsheet .story__headline") |> Enum.count() == 21
+      assert doc |> LazyHTML.query(".broadsheet .ticker__item") |> Enum.count() == 5
 
       assert doc
              |> LazyHTML.query(".viewswitch__tab[aria-current='page']")
@@ -169,7 +173,7 @@ defmodule FrontierWeb.EditionPageTest do
         |> LazyHTML.query(".broadsheet .story__headline a, .broadsheet .ticker__headline a")
         |> LazyHTML.attribute("href")
 
-      assert length(links) == 32
+      assert length(links) == 26
       assert length(links) == length(Enum.uniq(links))
     end
 

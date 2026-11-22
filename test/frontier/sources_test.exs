@@ -277,7 +277,12 @@ defmodule Frontier.SourcesTest do
       assert "rss:openai" in keys
       assert "rss:arstechnica" in keys
       assert "bsky" in keys
-      assert length(keys) == 8
+      assert "rss:thehackernews" in keys
+      assert "rss:godot" in keys
+      assert "rss:kubernetes" in keys
+      assert "rss:quanta" in keys
+      assert "rss:80lv" in keys
+      assert length(keys) == 26
     end
   end
 

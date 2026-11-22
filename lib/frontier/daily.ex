@@ -79,10 +79,21 @@ defmodule Frontier.Daily do
   end
 
   defp edit(day, run, reports, pool, opts) do
-    editor_opts = Keyword.take(opts, [:link_checker, :candidates])
+    editor_opts =
+      Keyword.take(opts, [:link_checker, :candidates, :limit, :fetcher, :part_delay_ms])
+
     editor_opts = maybe_put(editor_opts, :client, Keyword.get(opts, :editor_client))
 
-    case Editor.edit(day, editor_opts) do
+    editor = if keyless?(opts), do: Frontier.Editor.Keyless, else: Editor
+
+    editor_opts =
+      if keyless?(opts) do
+        Keyword.put_new(editor_opts, :part_delay_ms, keyless_delay())
+      else
+        editor_opts
+      end
+
+    case editor.edit(day, editor_opts) do
       {:ok, %{report: editor_report}} ->
         assemble(day, run, reports, pool, editor_report, opts)
 
@@ -133,6 +144,20 @@ defmodule Frontier.Daily do
       {:error, reason} ->
         Runs.fail(run, reason, fetched: total_fetched(reports))
         {:error, reason}
+    end
+  end
+
+  # A keyless endpoint cannot write twenty-one stories in one reply, so the
+  # editor writes the paper in parts. The switch is per run or by environment.
+  defp keyless?(opts) do
+    Keyword.get(opts, :keyless, false) or
+      Application.get_env(:frontier, :editor_mode) == "keyless"
+  end
+
+  defp keyless_delay do
+    case Integer.parse(System.get_env("FRONTIER_KEYLESS_DELAY_MS", "50000")) do
+      {milliseconds, _rest} -> milliseconds
+      :error -> 50_000
     end
   end
 

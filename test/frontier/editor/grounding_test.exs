@@ -84,15 +84,15 @@ defmodule Frontier.Editor.GroundingTest do
 
   describe "word budgets" do
     test "a summary inside the budget passes" do
-      assert :ok = Grounding.check_words(String.duplicate("word ", 70), :standard)
+      assert :ok = Grounding.check_words(String.duplicate("word ", 85), :standard)
     end
 
     test "a summary over or under the budget is returned, with the count" do
-      assert {:error, {:summary_words, 50, 60..80}} =
+      assert {:error, {:summary_words, 50, 80..100}} =
                Grounding.check_words(String.duplicate("word ", 50), :standard)
 
-      assert {:error, {:summary_words, 151, 120..150}} =
-               Grounding.check_words(String.duplicate("word ", 151), :lead)
+      assert {:error, {:summary_words, 200, 140..175}} =
+               Grounding.check_words(String.duplicate("word ", 200), :lead)
     end
   end
 

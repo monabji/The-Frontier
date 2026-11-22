@@ -10,11 +10,11 @@ A daily, free, public newspaper for AI and tech: one dated edition each morning,
 |---|---|
 | Promise | Complete-enough coverage of the last 24h plus a few genuinely interesting finds; the edition visibly ends |
 | Audience | Public and free; anonymous readers get the default edition, personalization needs no account |
-| Sources | HN, six feeds (OpenAI, Hugging Face, DeepMind, Google AI, Ars Technica, Simon Willison) and Bluesky since phase 3; arXiv joins next, filling Research. Anthropic has no public feed. X is an optional paid adapter (`≤$150/mo`), disabled until launch budget is approved |
+| Sources | HN, Bluesky and 24 feeds, one or more per beat: OpenAI, Hugging Face, DeepMind, Google AI, Ars Technica, Simon Willison; The Hacker News, BleepingComputer, Krebs on Security; Game Developer, Godot; Android Developers, React Native; Phoronix, LWN; Kubernetes, CNCF; Quanta, IEEE Spectrum, Quantum Computing Report, CoinDesk; 80.lv, Smashing Magazine, Blender. arXiv joins next, filling Research. Anthropic has no public feed. X is an optional paid adapter (`≤$150/mo`), disabled until launch budget is approved; until then Trending reads Bluesky and HN |
 | Relevance | LLM editor ranks a shared corpus against a readable taste profile; thumbs refine it |
 | Format | One page, headline + 60–80 word summary + source quote + link; no full articles |
 | Cadence | One dated edition at 06:00 IST; Late Wire until 18:00 (max 3); archive freezes at midnight |
-| Sections | Front Page, Models & Releases, Research, Tooling & Dev, The Discourse, The Long Read, Back Page, plus Also Today |
+| Sections | Eleven beats: Front Page, Models & Harnesses, Research, Security, Game Development, App Development, FOSS, DevOps, Frontier Science, Design, Trending — plus Also Today (ADR 0011) |
 | Stack | Elixir + Phoenix LiveView + SQLite + Oban, one release binary, one free VM |
 | Identity | Signed anonymous cookie ID, no accounts; append-only events under a versioned taste document; saveable "your paper" link; explicit forget |
 | Design | Letterpress broadsheet: Newsreader body, Fraunces display (settled in phase 0, see `docs/DESIGN.md`), letterspaced small-cap datelines, credited grayscale source images, Night Edition |
@@ -65,10 +65,16 @@ See `docs/adr/` for the decisions worth remembering and `GLOSSARY.md` for vocabu
 
 Fold generation is lazy: on a reader's first page load of the day, the editor builds their fold from the published pool + profile, cached in `folds`.
 
+## The desk: editing without an API key
+
+A morning can close without a model endpoint. `mix frontier.brief` writes the exact prompt the editor would send — sections, caps, word budgets, quote rule, and every candidate with its id, link and source text. A person pastes it into ChatGPT, Gemini or Claude, then pastes the JSON reply into `mix frontier.desk --reply <file>` or the token-gated `/desk` page. The reply goes through the same plan validation and the same grounding (quote is a substring, link resolves, entities present, word budgets) as a live model's, and a failed check drops the story. The run is recorded as `desk:<assistant>` with zero tokens and zero cost.
+
+The desk is not a fallback that prints guesses: it is the editor with a person holding the pen. The page is behind `FRONTIER_DESK_TOKEN`; with no token set, `/desk` is absent.
+
 ## Editorial rules
 
-- **Length:** 22–25 stories, ~1,800–2,000 words, 8–10 minutes: lead 120–150 words, standard 60–80, ticker 12–18, discourse quote 25–40.
-- **Caps:** Front Page 3, Models & Releases 4, Research 3, Tooling & Dev 4, The Discourse 3, The Long Read 1, Back Page 4, Also Today 10–15.
+- **Length:** 20–22 stories, ~1,750–2,000 words, 8–10 minutes: lead 140–175 words, standard 80–100, ticker 12–18. The editor aims for 21.
+- **Caps:** Front Page 3, Models & Harnesses 3, Research 3, Security 2, Game Development 2, App Development 2, FOSS 2, DevOps 2, Frontier Science 2, Design 2, Trending 2, Also Today 5. The caps are ceilings, not quotas: a beat with nothing real disappears for the day.
 - **Once only:** a story is printed in exactly one section; cross-reference instead of duplicating.
 - **Reprint window:** nothing prints twice within 72h unless materially updated, and updates are marked.
 - **No link, no story:** every story has a resolving link and a verified source quote.
@@ -78,7 +84,7 @@ Fold generation is lazy: on a reader's first page load of the day, the editor bu
 ## Personalization
 
 - The **shared spine** is identical for every reader.
-- The **fold** personalizes selection and ordering in The Discourse, The Long Read and Back Page, plus the emphasis of summaries — never facts.
+- The **fold** personalizes selection and ordering in the smaller beats — Game Development, App Development, FOSS, DevOps, Design, Trending — plus the emphasis of summaries — never facts.
 - Thumbs append to the profile immediately; tomorrow's fold reflects them. No per-reader fetching, so cost stays flat and facts stay coherent.
 
 ## Design

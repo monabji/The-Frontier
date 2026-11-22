@@ -83,6 +83,7 @@ defmodule Frontier.Editor do
       candidates: candidates,
       client: Keyword.get(opts, :client, Client.configured()),
       link_checker: Keyword.get(opts, :link_checker, &Grounding.resolve_link/1),
+      word_ranges: Keyword.get(opts, :word_ranges),
       opts: opts
     }
 
@@ -244,7 +245,7 @@ defmodule Frontier.Editor do
 
     {entries, entry_failures} =
       Enum.map_reduce(plan.entries, [], fn entry, failures ->
-        case grounded(entry, by_id[entry.story_id], context.link_checker) do
+        case grounded(entry, by_id[entry.story_id], context.link_checker, context.word_ranges) do
           {:ok, entry} -> {entry, failures}
           {:error, reasons} -> {nil, [%{entry: entry, reasons: reasons} | failures]}
         end
@@ -252,7 +253,7 @@ defmodule Frontier.Editor do
 
     {tickers, ticker_failures} =
       Enum.map_reduce(plan.tickers, [], fn ticker, failures ->
-        case grounded(ticker, by_id[ticker.story_id], context.link_checker) do
+        case grounded(ticker, by_id[ticker.story_id], context.link_checker, context.word_ranges) do
           {:ok, ticker} -> {ticker, failures}
           {:error, reasons} -> {nil, [%{entry: ticker, reasons: reasons} | failures]}
         end
@@ -270,15 +271,15 @@ defmodule Frontier.Editor do
     }
   end
 
-  defp grounded(_entry, nil, _link_checker), do: {:error, [:unknown_story]}
+  defp grounded(_entry, nil, _link_checker, _ranges), do: {:error, [:unknown_story]}
 
-  defp grounded(entry, candidate, link_checker) do
+  defp grounded(entry, candidate, link_checker, ranges) do
     quote = Grounding.choose_quote(quote_options(entry), candidate.text)
 
     reasons =
       [
         Grounding.check_entities(entry.headline, candidate.text),
-        Grounding.check_words(entry.summary, entry.kind),
+        Grounding.check_words(entry.summary, entry.kind, ranges),
         link_check(entry.url, link_checker)
       ]
       |> Enum.flat_map(fn

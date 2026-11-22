@@ -18,15 +18,19 @@ defmodule Frontier.EditorFixtures do
 
   @placement [
     {"Front Page", 3},
-    {"Models & Releases", 4},
-    {"Research", 3},
-    {"Tooling & Dev", 4},
-    {"The Discourse", 3},
-    {"The Long Read", 1},
-    {"Back Page", 4}
+    {"Models & Harnesses", 3},
+    {"Research", 2},
+    {"Security", 2},
+    {"Game Development", 2},
+    {"App Development", 2},
+    {"FOSS", 2},
+    {"DevOps", 2},
+    {"Frontier Science", 1},
+    {"Design", 1},
+    {"Trending", 1}
   ]
 
-  @doc "The section layout the plan's caps allow: 22 stories."
+  @doc "A full day's placement across the beats: 21 stories."
   def placement, do: @placement
 
   @doc "Stores `count` distinct raw items and clusters them into stories."
@@ -74,10 +78,10 @@ defmodule Frontier.EditorFixtures do
     candidates
   end
 
-  @doc "A complete, valid structured reply for 22 stories and 10 tickers."
+  @doc "A complete, valid structured reply for 21 stories and 5 tickers."
   def payload(candidates, opts \\ []) do
-    main = Enum.take(candidates, 22)
-    tickers = candidates |> Enum.drop(22) |> Enum.take(10)
+    main = Enum.take(candidates, 21)
+    tickers = candidates |> Enum.drop(21) |> Enum.take(5)
 
     entries =
       main
@@ -125,8 +129,8 @@ defmodule Frontier.EditorFixtures do
   end
 
   @doc "Summaries of the right length for a kind."
-  def summary(:lead), do: words(135)
-  def summary(:standard), do: words(70)
+  def summary(:lead), do: words(150)
+  def summary(:standard), do: words(85)
   def summary(:ticker), do: words(15)
 
   defp words(count), do: String.duplicate("word ", count) |> String.trim()

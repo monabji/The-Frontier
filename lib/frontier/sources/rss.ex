@@ -44,7 +44,25 @@ defmodule Frontier.Sources.RSS do
       Frontier.Sources.RSS.DeepMind,
       Frontier.Sources.RSS.GoogleAI,
       Frontier.Sources.RSS.ArsTechnica,
-      Frontier.Sources.RSS.SimonWillison
+      Frontier.Sources.RSS.SimonWillison,
+      Frontier.Sources.RSS.TheHackerNews,
+      Frontier.Sources.RSS.BleepingComputer,
+      Frontier.Sources.RSS.Krebs,
+      Frontier.Sources.RSS.GameDeveloper,
+      Frontier.Sources.RSS.Godot,
+      Frontier.Sources.RSS.AndroidDevelopers,
+      Frontier.Sources.RSS.ReactNative,
+      Frontier.Sources.RSS.Phoronix,
+      Frontier.Sources.RSS.LWN,
+      Frontier.Sources.RSS.Kubernetes,
+      Frontier.Sources.RSS.CNCF,
+      Frontier.Sources.RSS.Quanta,
+      Frontier.Sources.RSS.IEEESpectrum,
+      Frontier.Sources.RSS.QuantumComputingReport,
+      Frontier.Sources.RSS.CoinDesk,
+      Frontier.Sources.RSS.EightyLV,
+      Frontier.Sources.RSS.SmashingMagazine,
+      Frontier.Sources.RSS.Blender
     ]
   end
 

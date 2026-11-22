@@ -11,7 +11,7 @@ defmodule Frontier.Editor.Plan do
 
   alias Frontier.Editor.{Reply, Sections}
 
-  @target_stories 22
+  @target_stories 21
   @desk_note_words 20..60
 
   @type issue ::
@@ -248,7 +248,7 @@ defmodule Frontier.Editor.Plan do
   # Read time counts the prose the plan budgets: the desk note, each story's
   # summary, and the ticker lines. Headlines are labels and quotes are evidence
   # set beside the prose, so neither is part of the advertised length. PLAN's
-  # 1,800–2,000 words for a full paper is this number.
+  # 1,750–2,000 words for a full paper is this number.
   defp word_count(desk_note, entries, tickers) do
     main =
       Enum.reduce(entries, Sections.word_count(desk_note), fn entry, total ->

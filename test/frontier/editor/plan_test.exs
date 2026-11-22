@@ -143,9 +143,9 @@ defmodule Frontier.Editor.PlanTest do
       assert {:dropped, 4, :section_over_cap} in plan.issues
     end
 
-    test "Also Today is capped at fifteen" do
+    test "Also Today is capped at five" do
       tickers =
-        Enum.map(1..17, &entry(&1, %{"section" => "Also Today", "summary" => "A short line."}))
+        Enum.map(1..8, &entry(&1, %{"section" => "Also Today", "summary" => "A short line."}))
 
       plan =
         Plan.validate(
@@ -153,9 +153,9 @@ defmodule Frontier.Editor.PlanTest do
           pool(20)
         )
 
-      assert length(plan.tickers) == 15
+      assert length(plan.tickers) == 5
       assert plan.tickers |> List.first() |> Map.get(:kind) == :ticker
-      assert {:dropped, 16, :ticker_over_cap} in plan.issues
+      assert {:dropped, 6, :ticker_over_cap} in plan.issues
     end
 
     test "an unknown section is dropped, never printed" do
@@ -173,7 +173,7 @@ defmodule Frontier.Editor.PlanTest do
 
     test "a full pool must produce a full paper" do
       plan = Plan.validate(payload([entry(1)]), pool(30))
-      assert {:too_short, 1, 22} in plan.issues
+      assert {:too_short, 1, 21} in plan.issues
     end
 
     test "a quiet day is allowed to be short" do

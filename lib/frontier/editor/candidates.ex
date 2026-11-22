@@ -14,7 +14,10 @@ defmodule Frontier.Editor.Candidates do
   alias Frontier.Newsroom.Story
   alias Frontier.Sources
 
-  @default_limit 40
+  # Enough to show every source's first few stories. The paper has more than
+  # twenty beats and sources; a limit of forty would fill the prompt from the
+  # top few feeds and starve the rest.
+  @default_limit 100
 
   @type t :: %{
           id: integer(),
@@ -32,7 +35,7 @@ defmodule Frontier.Editor.Candidates do
         }
 
   @doc """
-  Builds candidates from preloaded stories. Options: `:limit` (default 40) and
+  Builds candidates from preloaded stories. Options: `:limit` (default 100) and
   the source-text options (`:fetcher`).
   """
   @spec build([Story.t()], keyword()) :: %{candidates: [t()], excluded: [map()]}

@@ -43,9 +43,19 @@ config :frontier, Frontier.Editor.Client.HTTP,
   base_url: System.get_env("FRONTIER_LLM_BASE_URL", "https://api.openai.com/v1"),
   model: System.get_env("FRONTIER_LLM_MODEL", "gpt-4o-mini"),
   api_key: System.get_env("FRONTIER_LLM_API_KEY") || System.get_env("OPENAI_API_KEY"),
+  allow_missing_api_key: System.get_env("FRONTIER_LLM_KEYLESS") in ["1", "true"],
+  reasoning_effort: System.get_env("FRONTIER_LLM_REASONING_EFFORT"),
   temperature: 0.4,
   max_tokens: 8_000,
   timeout: String.to_integer(System.get_env("FRONTIER_LLM_TIMEOUT_MS", "180000"))
+
+# The editing desk pastes a chat window's reply into the paper. It can write an
+# edition, so it is disabled unless this token is set and presented.
+config :frontier, :desk_token, System.get_env("FRONTIER_DESK_TOKEN")
+
+# "model" asks one endpoint for the whole paper; "keyless" writes it in parts,
+# for a free endpoint with a short reply. The client is still the same.
+config :frontier, :editor_mode, System.get_env("FRONTIER_EDITOR", "model")
 
 config :frontier, :editor_pricing, %{
   input_per_million: parse_price.("FRONTIER_LLM_INPUT_PRICE", 0.15),

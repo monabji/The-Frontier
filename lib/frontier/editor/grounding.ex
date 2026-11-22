@@ -65,11 +65,18 @@ defmodule Frontier.Editor.Grounding do
     end
   end
 
-  @doc "A summary must sit inside its kind's word budget."
-  @spec check_words(String.t() | nil, :lead | :standard | :ticker) ::
+  @doc """
+  A summary must sit inside its kind's word budget.
+
+  A keyless run may pass its own ranges: a small model writes shorter
+  summaries than the paper's ideal, and the honest options are to print them or
+  to lose the story. The advertised read time is computed from what actually
+  prints, so the shorter budget is visible to the reader, not hidden.
+  """
+  @spec check_words(String.t() | nil, :lead | :standard | :ticker, map() | nil) ::
           :ok | {:error, term()}
-  def check_words(text, kind) do
-    range = Sections.word_range(kind)
+  def check_words(text, kind, ranges \\ nil) do
+    range = (ranges && Map.get(ranges, kind)) || Sections.word_range(kind)
     count = Sections.word_count(text)
 
     if count in range, do: :ok, else: {:error, {:summary_words, count, range}}

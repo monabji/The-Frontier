@@ -19,10 +19,12 @@ defmodule Mix.Tasks.Frontier.Daily do
 
   @impl Mix.Task
   def run(args) do
-    {opts, _argv} = OptionParser.parse!(args, strict: [day: :string])
+    {opts, _argv} =
+      OptionParser.parse!(args, strict: [day: :string, keyless: :boolean])
+
     day = day(opts[:day])
 
-    case Frontier.Daily.run(day) do
+    case Frontier.Daily.run(day, keyless: Keyword.get(opts, :keyless, false)) do
       {:ok, report} ->
         Mix.shell().info("The Frontier — daily, #{day}")
 

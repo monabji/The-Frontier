@@ -1,6 +1,6 @@
 # 0003 — Shared spine, private taste, anonymous identity
 
-**Status:** Accepted — 2026-11-22
+**Status:** Accepted — 2026-11-22; spine amended by ADR 0011
 
 ## Context
 
@@ -8,8 +8,8 @@ The product is a newspaper: a shared artifact people can talk about. It is also 
 
 ## Decision
 
-- The news spine — Front Page, Models & Releases, Research, Tooling & Dev — is identical for every reader.
-- Personalization is confined to selection and ordering in The Discourse, The Long Read and Back Page, and to the emphasis of summaries. Facts never vary by reader.
+- The news spine — Front Page, Models & Harnesses, Research, Security, Frontier Science — is identical for every reader.
+- Personalization is confined to selection and ordering in the smaller beats (Game Development, App Development, FOSS, DevOps, Design, Trending) and to the emphasis of summaries. Facts never vary by reader.
 - Readers are anonymous: a signed cookie ID, a versioned readable taste profile, and a saveable recovery link. No passwords, emails or accounts in v1.
 
 ## Consequences

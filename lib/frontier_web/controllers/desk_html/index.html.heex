@@ -1,0 +1,137 @@
+<div class="sheet desk-sheet">
+  <header class="masthead">
+    <p class="flagline">
+      <span class="smallcaps">The desk</span>
+      <span class="smallcaps">{Frontier.Newsroom.Dateline.format(@day)}</span>
+    </p>
+    <h1 class="masthead__wordmark"><a href="/">The Frontier</a></h1>
+    <p class="masthead__motto">
+      Paste the brief into a chat window. Paste the reply back. The same checks
+      the morning run uses decide what prints.
+    </p>
+  </header>
+
+  <main class="page">
+    <p :if={@error} class="reader-error">{@error}</p>
+
+    <%= if @result do %>
+      <h2 class="section-band">
+        <span class="smallcaps">Assembled</span>
+        <span class="smallcaps section-band__kicker">
+          {@result.printed} stories · {@result.read_minutes} min
+        </span>
+      </h2>
+
+      <p :if={@result.edition.desk_note} class="desk-note">
+        <span class="smallcaps">From the desk</span>
+        <span class="desk-note__text">{@result.edition.desk_note}</span>
+      </p>
+
+      <p class="fineprint">
+        Model: {(@result.report && @result.report.model) || "desk"} · no tokens ·
+        draft {if @result.edition.status == "draft", do: "", else: " · #{@result.edition.status}"}.
+        Read it, then publish.
+      </p>
+
+      <section :for={{section, entries} <- @result.sections} class="desk-section">
+        <h3 class="section-band"><span class="smallcaps">{section}</span></h3>
+
+        <article :for={entry <- entries} class="desk-story">
+          <p class="desk-story__headline">
+            <a href={entry.url} rel="noopener noreferrer">{entry.headline}</a>
+          </p>
+          <p class="desk-story__summary">{entry.summary}</p>
+          <p class="desk-story__source">
+            {entry.source_label} · <span class="smallcaps">{entry.section}</span>
+          </p>
+        </article>
+      </section>
+
+      <section :if={@result.tickers != []} class="desk-section">
+        <h3 class="section-band"><span class="smallcaps">Also Today</span></h3>
+        <p :for={entry <- @result.tickers} class="desk-ticker">{entry.summary}</p>
+      </section>
+
+      <h2 :if={@result.report && @result.report.issues != []} class="section-band">
+        <span class="smallcaps">Dropped</span>
+        <span class="smallcaps section-band__kicker">
+          {length(@result.report.issues)}
+        </span>
+      </h2>
+
+      <ul :if={@result.report} class="desk-issues">
+        <li :for={issue <- @result.report.issues}>{inspect(issue)}</li>
+      </ul>
+
+      <div class="desk-actions">
+        <form
+          :if={@result.edition.status == "draft"}
+          method="post"
+          action="/desk/publish"
+          class="desk-form desk-form--inline"
+        >
+          <input type="hidden" name="_csrf_token" value={@csrf_token} />
+          <input type="hidden" name="token" value={@token} />
+          <input type="hidden" name="day" value={Date.to_iso8601(@day)} />
+          <button class="button" type="submit">Publish this edition</button>
+        </form>
+
+        <a class="button button--quiet" href={"/desk?token=#{@token}"}>Start a new brief</a>
+      </div>
+    <% else %>
+      <h2 class="section-band">
+        <span class="smallcaps">The brief</span>
+        <span class="smallcaps section-band__kicker">{@candidates} candidates</span>
+      </h2>
+
+      <p class="reader-copy">
+        Paste this whole block into ChatGPT, Gemini or Claude. Ask for nothing
+        extra: the brief already carries the sections, the word budgets, the
+        quote rule and every candidate. Then paste the JSON it returns below.
+      </p>
+
+      <p :if={@excluded != []} class="fineprint">
+        {length(@excluded)} candidates could not be quoted and are not in the brief.
+      </p>
+
+      <textarea id="brief" class="desk-brief" rows="12" readonly>{@brief}</textarea>
+
+      <button
+        type="button"
+        class="button button--quiet"
+        onclick="const b=document.getElementById('brief');navigator.clipboard.writeText(b.value);this.textContent='Copied';return false"
+      >
+        Copy the brief
+      </button>
+
+      <form method="post" action="/desk" class="desk-form">
+        <input type="hidden" name="_csrf_token" value={@csrf_token} />
+        <input type="hidden" name="token" value={@token} />
+        <input type="hidden" name="day" value={Date.to_iso8601(@day)} />
+        <input :if={@brief} type="hidden" name="brief" value={@brief} />
+
+        <label class="field" for="desk-reply">
+          <span class="smallcaps">The reply</span>
+          <textarea
+            id="desk-reply"
+            name="reply"
+            rows="12"
+            placeholder="Paste the JSON object the chat window returned."
+          >{@reply}</textarea>
+        </label>
+
+        <label class="field" for="desk-assistant">
+          <span class="smallcaps">Which assistant</span>
+          <select id="desk-assistant" name="assistant">
+            <option value="chatgpt" selected={@assistant == "chatgpt"}>ChatGPT</option>
+            <option value="gemini" selected={@assistant == "gemini"}>Gemini</option>
+            <option value="claude" selected={@assistant == "claude"}>Claude</option>
+            <option value="other" selected={@assistant == "other"}>Another</option>
+          </select>
+        </label>
+
+        <button class="button" type="submit">Ground and assemble</button>
+      </form>
+    <% end %>
+  </main>
+</div>

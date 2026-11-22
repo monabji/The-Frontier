@@ -1,6 +1,6 @@
 defmodule Frontier.Profiles.Chips do
   @moduledoc """
-  The eight interests a new reader can express.
+  The ten interests a new reader can express, one per beat of the paper.
 
   Chips are the only place a reader states taste before reading anything, so
   they are broad enough to shape a fold without asking for a biography. Labels
@@ -8,14 +8,16 @@ defmodule Frontier.Profiles.Chips do
   """
 
   @chips [
-    {"models", "Models & releases"},
-    {"research", "Research"},
-    {"tooling", "Tools & code"},
-    {"policy", "Policy & law"},
-    {"startups", "Startups & money"},
-    {"hardware", "Chips & hardware"},
+    {"models", "Models & harnesses"},
+    {"research", "AI research"},
     {"security", "Security"},
-    {"culture", "Culture & argument"}
+    {"games", "Games & engines"},
+    {"apps", "App development"},
+    {"foss", "Open source"},
+    {"devops", "DevOps & infra"},
+    {"science", "Frontier science"},
+    {"design", "Design & 3D"},
+    {"trending", "What's trending"}
   ]
 
   @doc "Every chip as `{key, label}`, in the order the onboarding prints them."
