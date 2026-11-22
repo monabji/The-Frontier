@@ -76,6 +76,28 @@ defmodule Frontier.Editor.Grounding do
   end
 
   @doc """
+  The first quote candidate that grounds, or the last failure.
+
+  The model is asked for a quote and up to two alternates. Trying them in order
+  turns a near-miss in one sentence into a printed story instead of a dropped
+  one, without relaxing the check: every candidate must still be found verbatim.
+  """
+  @spec choose_quote([String.t() | nil], String.t() | nil) ::
+          {:ok, String.t()} | {:error, term()}
+  def choose_quote(quotes, source) when is_list(quotes) do
+    quotes
+    |> Enum.filter(&is_binary/1)
+    |> Enum.reduce_while({:error, :quote_missing}, fn quote, _previous ->
+      case check_quote(quote, source) do
+        :ok -> {:halt, {:ok, quote}}
+        {:error, reason} -> {:cont, {:error, reason}}
+      end
+    end)
+  end
+
+  def choose_quote(_quotes, _source), do: {:error, :quote_missing}
+
+  @doc """
   Checks a link with the injected checker and returns where it landed.
 
   The checker returns `{:ok, final_url}` or `{:error, reason}`; a dead link
@@ -97,21 +119,39 @@ defmodule Frontier.Editor.Grounding do
   The production link checker: a browser-like HEAD through `Frontier.HTTP`.
 
   403 and 429 are bot protection, not death: the plan says those count as alive
-  when the source is real. A 404, a 410 or a dead host is a dead story.
+  when the source is real. 405 means the server answered but does not allow
+  HEAD, which is a live page refusing a method, not a missing one. A 404, a 410
+  or a dead host is a dead story.
   """
   @spec resolve_link(String.t()) :: {:ok, String.t()} | {:error, term()}
-  def resolve_link(url) do
-    case Frontier.HTTP.final_url(url) do
-      {:ok, final} -> {:ok, final}
-      {:error, {:http_status, status, _excerpt}} when status in [403, 429] -> {:ok, url}
-      {:error, reason} -> {:error, {:unresolved_link, reason}}
+  def resolve_link(url), do: resolve_link(url, &Frontier.HTTP.final_url/1)
+
+  @doc """
+  The same rule with the HTTP call injected, so the status handling is testable
+  without a request. `http` returns `{:ok, final_url}` or `{:error, reason}`.
+  """
+  @spec resolve_link(String.t(), (String.t() -> {:ok, String.t()} | {:error, term()})) ::
+          {:ok, String.t()} | {:error, term()}
+  def resolve_link(url, http) when is_binary(url) and is_function(http, 1) do
+    case http.(url) do
+      {:ok, final} ->
+        {:ok, final}
+
+      {:error, {:http_status, status, _excerpt}} ->
+        case http_link(status) do
+          :ok -> {:ok, url}
+          {:error, reason} -> {:error, {:unresolved_link, reason}}
+        end
+
+      {:error, reason} ->
+        {:error, {:unresolved_link, reason}}
     end
   end
 
   @doc "The status-code half of the link rule, without the request."
   @spec http_link(non_neg_integer()) :: :ok | {:error, term()}
   def http_link(status) when status in 200..299, do: :ok
-  def http_link(status) when status in [403, 429], do: :ok
+  def http_link(status) when status in [403, 405, 429], do: :ok
   def http_link(status), do: {:error, {:http_status, status}}
 
   # "Gemini 4" and "Gemini 4 Neon" are missing together; naming the longer one

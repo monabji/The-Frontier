@@ -41,6 +41,27 @@ defmodule Frontier.Editor.GroundingTest do
     end
   end
 
+  describe "quote candidates" do
+    test "the first candidate that grounds is used" do
+      assert {:ok, "Astra is our most capable model yet,"} =
+               Grounding.choose_quote(
+                 [
+                   "A sentence that the source never contained.",
+                   "Astra is our most capable model yet,"
+                 ],
+                 @source
+               )
+    end
+
+    test "no candidate grounding is a failure" do
+      assert {:error, :quote_not_in_source} =
+               Grounding.choose_quote(
+                 ["Invented one.", "Invented two, with more words."],
+                 @source
+               )
+    end
+  end
+
   describe "the headline's names are in the source" do
     test "every distinctive name appears in the text" do
       assert :ok =
@@ -92,9 +113,21 @@ defmodule Frontier.Editor.GroundingTest do
   end
 
   describe "the HTTP link checker" do
-    test "a 200 is alive; a 403 or 429 is bot protection, not death" do
+    test "the injected result follows the same status rule" do
+      forbidden = fn _url -> {:error, {:http_status, 403, "Forbidden"}} end
+      missing = fn _url -> {:error, {:http_status, 404, "Not Found"}} end
+
+      assert {:ok, "https://example.com/x"} =
+               Grounding.resolve_link("https://example.com/x", forbidden)
+
+      assert {:error, {:unresolved_link, {:http_status, 404}}} =
+               Grounding.resolve_link("https://example.com/x", missing)
+    end
+
+    test "a 200 is alive; 403, 405 and 429 are a live server, not death" do
       assert :ok = Grounding.http_link(200)
       assert :ok = Grounding.http_link(403)
+      assert :ok = Grounding.http_link(405)
       assert :ok = Grounding.http_link(429)
     end
 

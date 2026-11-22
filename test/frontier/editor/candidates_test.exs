@@ -71,6 +71,31 @@ defmodule Frontier.Editor.CandidatesTest do
                SourceText.for_item(raw, fetcher: fetcher)
     end
 
+    test "the article body wins over the page's navigation" do
+      html = """
+      <html><body>
+      <nav>Models Datasets Pricing Enterprise Login Sign Up</nav>
+      <article><h1>Bread &amp; butter</h1><p>#{String.duplicate("The bakery opens before dawn. ", 20)}</p></article>
+      <footer>Terms Privacy Cookies</footer>
+      </body></html>
+      """
+
+      text = SourceText.from_html(html)
+      assert text =~ "The bakery opens before dawn."
+      refute text =~ "Datasets"
+      refute text =~ "Privacy"
+    end
+
+    test "a tiny article teaser falls back to the page body" do
+      html = """
+      <html><body><article>A 30-second teaser.</article>
+      <div>#{String.duplicate("The real report begins with a sentence of substance. ", 12)}</div>
+      </body></html>
+      """
+
+      assert SourceText.from_html(html) =~ "The real report begins"
+    end
+
     test "HTML machinery is stripped, entities decoded, text bounded" do
       html =
         "<html><script>tracker()</script><style>.a{}</style><p>Bread &amp; butter&nbsp;here</p></html>"
@@ -106,6 +131,24 @@ defmodule Frontier.Editor.CandidatesTest do
 
       assert excluded.story_id == 4
       assert excluded.reason == :timeout
+    end
+
+    test "a story with no publication is not quotable" do
+      story = %Story{
+        id: 9,
+        headline: "A social post about something",
+        primary_url: "https://bsky.app/profile/x/post/1",
+        canonical_url: "https://bsky.app/profile/x/post/1",
+        story_items: [
+          %StoryItem{
+            role: "discussion",
+            raw_item: %RawItem{source: "bsky", url: "https://bsky.app/profile/x/post/1"}
+          }
+        ]
+      }
+
+      assert %{candidates: [], excluded: [excluded]} = Candidates.build([story])
+      assert excluded.reason == :no_primary_item
     end
 
     test "the list is capped and keeps the paper's order" do

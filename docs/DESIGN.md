@@ -52,6 +52,9 @@ shadows, no cards, no rounded corners, no images.
 - Label device: uppercase Newsreader at 11–12px with `0.16em` tracking. It is
   only used where it carries information: edition flag, date line, section
   band, source line, quote credit.
+- **Read time** sits in the edition flag (`Morning, 06:00 IST · 9 min read`),
+  not in a badge or a card: the edition promises a length, so the page says it
+  once, in the line that already names the edition.
 
 ## Rules
 
@@ -61,6 +64,6 @@ never decoration; it separates two things that differ.
 
 ## What is deliberately absent
 
-Navigation, buttons, flash messages, a footer sitemap, reading-time badges,
-tracking, and any JavaScript the reader would need to see the page. There is
-one page and it ends.
+Navigation, buttons, flash messages, a footer sitemap, tracking, and any
+JavaScript the reader would need to see the page. There is one page and it
+ends.

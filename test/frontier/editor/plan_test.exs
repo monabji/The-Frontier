@@ -43,7 +43,9 @@ defmodule Frontier.Editor.PlanTest do
   defp payload(entries, overrides \\ %{}) do
     Map.merge(
       %{
-        "desk_note" => "A busy morning in models, and a quieter afternoon in research.",
+        "desk_note" =>
+          "A busy morning in models, and a quieter afternoon in research. " <>
+            "The paper is shorter than usual, and says so plainly.",
         "entries" => entries,
         "also_today" => []
       },
@@ -76,6 +78,17 @@ defmodule Frontier.Editor.PlanTest do
       plan = Plan.validate(payload(entries), pool(3))
       assert Enum.map(plan.entries, & &1.story_id) == [2, 3, 1]
       assert Enum.map(plan.entries, & &1.kind) == [:lead, :standard, :standard]
+    end
+
+    test "quote candidates travel with the entry" do
+      raw = Map.put(entry(1), "quote_candidates", ["Another exact sentence.", "A third."])
+      [entry] = Plan.validate(payload([raw]), pool(3)).entries
+      assert entry.quote_candidates == ["Another exact sentence.", "A third."]
+    end
+
+    test "a desk note under twenty words is sent back" do
+      plan = Plan.validate(payload([entry(1)], %{"desk_note" => "A quiet day."}), pool(3))
+      assert {:desk_note, :too_short} in plan.issues
     end
 
     test "the entry carries the story's link and provenance from the pool" do
@@ -165,6 +178,28 @@ defmodule Frontier.Editor.PlanTest do
       plan = Plan.validate(payload([entry(1), entry(2)]), pool(6))
       refute Enum.any?(plan.issues, fn issue -> match?({:too_short, _, _}, issue) end)
       assert plan.story_count == 2
+    end
+
+    test "read time counts prose, not headlines or hidden ticker quotes" do
+      entry = entry(1) |> Map.put("quote", "One two three four five.")
+
+      ticker =
+        entry(2, %{
+          "headline" => "A five word ticker headline",
+          "summary" => "one two three four five six seven eight nine ten eleven twelve"
+        })
+
+      plan =
+        Plan.validate(
+          payload([entry], %{
+            "also_today" => [ticker],
+            "desk_note" => String.duplicate("word ", 20)
+          }),
+          pool(3)
+        )
+
+      # 20 desk + 70 summary + 5 quote + 12 ticker = 107
+      assert plan.word_count == 107
     end
 
     test "a missing desk note is an issue, not an empty page" do

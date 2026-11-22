@@ -52,6 +52,21 @@ defmodule Frontier.Newsroom.EntitiesTest do
       refute Entities.distinctive?("the")
     end
 
+    test "an editorial lead word is not part of the name" do
+      assert "godzilla minus zero" in Entities.from_title(
+               "Review: Godzilla Minus Zero joins the list"
+             )
+
+      refute "review godzilla minus zero" in Entities.from_title(
+               "Review: Godzilla Minus Zero joins the list"
+             )
+    end
+
+    test "a question is not a name" do
+      entities = Entities.from_title("Ask HN: US. What to do?")
+      refute Enum.any?(entities, &String.contains?(&1, "what"))
+    end
+
     test "an empty or unknown title yields nothing" do
       assert Entities.from_title(nil) == []
       assert Entities.from_title("") == []

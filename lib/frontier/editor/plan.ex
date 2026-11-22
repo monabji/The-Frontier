@@ -9,10 +9,10 @@ defmodule Frontier.Editor.Plan do
   the run log can show, never quietly moved to a section it does not belong in.
   """
 
-  alias Frontier.Editor.Sections
+  alias Frontier.Editor.{Reply, Sections}
 
   @target_stories 22
-  @desk_note_words 8..80
+  @desk_note_words 20..60
 
   @type issue ::
           {:dropped, term(), term()}
@@ -30,6 +30,7 @@ defmodule Frontier.Editor.Plan do
           dek: String.t() | nil,
           summary: String.t(),
           quote: String.t() | nil,
+          quote_candidates: [String.t()],
           primary_source: String.t() | nil,
           source_label: String.t() | nil,
           discussion_url: String.t() | nil,
@@ -62,7 +63,7 @@ defmodule Frontier.Editor.Plan do
 
     {entries, issues, seen} =
       payload
-      |> list("entries")
+      |> Reply.list("entries")
       |> Enum.reduce({[], [], seen}, fn raw, {kept, issues, seen} ->
         case place(raw, by_id, seen) do
           {:ok, entry, seen} -> {[entry | kept], issues, seen}
@@ -74,7 +75,7 @@ defmodule Frontier.Editor.Plan do
 
     {tickers, issues, _seen} =
       payload
-      |> list("also_today")
+      |> Reply.list("also_today")
       |> Enum.reduce({[], issues, seen}, fn raw, {kept, issues, seen} ->
         case place_ticker(raw, by_id, seen) do
           {:ok, ticker, seen} -> {[ticker | kept], issues, seen}
@@ -110,8 +111,8 @@ defmodule Frontier.Editor.Plan do
   end
 
   defp place(raw, by_id, seen) do
-    id = value(raw, "story_id")
-    section = value(raw, "section")
+    id = Reply.get(raw, "story_id")
+    section = Reply.get(raw, "section")
 
     cond do
       id == nil ->
@@ -132,7 +133,7 @@ defmodule Frontier.Editor.Plan do
   end
 
   defp place_ticker(raw, by_id, seen) do
-    id = value(raw, "story_id")
+    id = Reply.get(raw, "story_id")
 
     cond do
       id == nil -> {:drop, nil, :missing_story}
@@ -151,9 +152,10 @@ defmodule Frontier.Editor.Plan do
       kind: :standard,
       position: 0,
       headline: copy(raw, "headline", story.headline),
-      dek: blank_to_nil(value(raw, "dek")),
+      dek: blank_to_nil(Reply.get(raw, "dek")),
       summary: copy(raw, "summary", ""),
-      quote: blank_to_nil(value(raw, "quote")),
+      quote: blank_to_nil(Reply.get(raw, "quote")),
+      quote_candidates: quote_candidates(raw),
       primary_source: Map.get(story, :primary_source),
       source_label: Map.get(story, :source_label),
       discussion_url: Map.get(story, :discussion_url),
@@ -220,7 +222,7 @@ defmodule Frontier.Editor.Plan do
   end
 
   defp desk_note(payload, issues) do
-    note = payload |> value("desk_note") |> blank_to_nil()
+    note = payload |> Reply.get("desk_note") |> blank_to_nil()
     count = Sections.word_count(note)
 
     cond do
@@ -241,37 +243,30 @@ defmodule Frontier.Editor.Plan do
     end
   end
 
+  # Read time counts what the reader reads as prose: the desk note, each
+  # story's summary and its printed quote, and the ticker lines. Headlines are
+  # labels, and a ticker's verified quote is not printed, so neither is part of
+  # the advertised length.
   defp word_count(desk_note, entries, tickers) do
     main =
       Enum.reduce(entries, Sections.word_count(desk_note), fn entry, total ->
-        total + entry.word_count + Sections.word_count(entry.quote) +
-          Sections.word_count(entry.headline) + Sections.word_count(entry.dek)
+        total + entry.word_count + Sections.word_count(entry.quote)
       end)
 
-    Enum.reduce(tickers, main, fn ticker, total ->
-      total + ticker.word_count + Sections.word_count(ticker.headline) +
-        Sections.word_count(ticker.quote)
-    end)
-  end
-
-  defp list(payload, key) do
-    case value(payload, key) do
-      list when is_list(list) -> Enum.filter(list, &is_map/1)
-      _other -> []
-    end
+    Enum.reduce(tickers, main, fn ticker, total -> total + ticker.word_count end)
   end
 
   defp copy(raw, key, fallback) do
-    case blank_to_nil(value(raw, key)) do
+    case blank_to_nil(Reply.get(raw, key)) do
       nil -> fallback
       text -> text
     end
   end
 
-  defp value(map, key) when is_map(map) do
-    case Map.fetch(map, key) do
-      {:ok, value} -> value
-      :error -> Map.get(map, String.to_atom(key))
+  defp quote_candidates(raw) do
+    case Reply.get(raw, "quote_candidates") do
+      list when is_list(list) -> Enum.filter(list, &is_binary/1)
+      _other -> []
     end
   end
 

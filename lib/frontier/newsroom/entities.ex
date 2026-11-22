@@ -19,7 +19,15 @@ defmodule Frontier.Newsroom.Entities do
     ask show tell hn new now just here there we you they i our your their
     after before during from into over under with without about across against
     top best first last more most less least no not
+    review reviews analysis opinion explainer interview recap hands-on
   )
+
+  # A question or a pronoun inside a capitalised run is not a name: "US. What
+  # to do?" must not become a product called "us what". Such a phrase is never
+  # distinctive, so dropping it costs no real name and prevents a false
+  # grounding failure.
+  @noise_words ~w(what why how who whom whose which when where i you we they us me my our
+    your their its this that these those)
 
   @doc """
   Distinctive names in a title, lowercased and in the order they appear.
@@ -66,6 +74,14 @@ defmodule Frontier.Newsroom.Entities do
   # sentence word. So every contiguous piece of the run is a candidate name,
   # and matching takes the shared one.
   defp candidates(run) do
+    if Enum.any?(run, &noise?/1) do
+      []
+    else
+      name_candidates(run)
+    end
+  end
+
+  defp name_candidates(run) do
     count = length(run)
 
     singles =
@@ -81,6 +97,8 @@ defmodule Frontier.Newsroom.Entities do
 
     singles ++ phrases
   end
+
+  defp noise?(word), do: String.downcase(word) in @noise_words
 
   defp tokenize(title) do
     Regex.scan(~r/[\p{L}\p{N}][\p{L}\p{N}+.\-]*/u, title) |> Enum.map(&hd/1)

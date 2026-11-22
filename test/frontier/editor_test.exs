@@ -66,6 +66,7 @@ defmodule Frontier.EditorTest do
       assert run.output_tokens == 400
       assert run.cost_micros == 420
       assert run.inserted == 32
+      assert run.rejected == 0
     end
 
     test "the lead is the first Front Page entry and the story is printed once", %{
@@ -81,6 +82,20 @@ defmodule Frontier.EditorTest do
 
       urls = Enum.map(edition.entries, & &1.canonical_url)
       assert length(urls) == length(Enum.uniq(urls))
+    end
+  end
+
+  describe "the day's pool" do
+    test "the editor builds its candidates from the stored pool", %{candidates: candidates} do
+      payload = EditorFixtures.payload(candidates)
+
+      assert {:ok, %{plan: plan}} =
+               Editor.edit(@day,
+                 client: fn _m, _o -> reply(payload) end,
+                 link_checker: links_ok()
+               )
+
+      assert plan.story_count == 22
     end
   end
 
@@ -105,6 +120,35 @@ defmodule Frontier.EditorTest do
       assert [rejection] = Editions.rejections(@day)
       assert rejection.story_id == bad["story_id"]
       assert rejection.reason == "quote_not_in_source"
+
+      run = Repo.one!(from run in Run, where: run.stage == "edit")
+      assert run.rejected == 1
+    end
+
+    test "a valid alternate quote prints without a repair call", %{candidates: candidates} do
+      payload = EditorFixtures.payload(candidates)
+      [first | rest] = payload["entries"]
+      good_quote = EditorFixtures.verbatim_quote(candidate(candidates, first["story_id"]))
+
+      bad =
+        first
+        |> Map.put("quote", "The bakery was opened by a robot that nobody had seen before.")
+        |> Map.put("quote_candidates", [good_quote])
+
+      payload = %{payload | "entries" => [bad | rest]}
+      {:ok, counter} = Agent.start_link(fn -> 0 end)
+
+      client = fn _messages, _opts ->
+        Agent.update(counter, &(&1 + 1))
+        reply(payload)
+      end
+
+      assert {:ok, %{plan: plan, edition: edition}} = edit(candidates, client)
+
+      assert plan.story_count == 22
+      assert Editions.rejections(@day) == []
+      assert Enum.find(edition.entries, &(&1.story_id == first["story_id"])).quote == good_quote
+      assert Agent.get(counter, & &1) == 1
     end
 
     test "a repaired quote prints", %{candidates: candidates} do
@@ -139,15 +183,23 @@ defmodule Frontier.EditorTest do
         _url -> {:ok, "https://example.com/final"}
       end
 
+      {:ok, counter} = Agent.start_link(fn -> 0 end)
+
       assert {:ok, %{plan: plan}} =
                Editor.edit(@day,
                  candidates: candidates,
-                 client: fn _m, _o -> reply(payload) end,
+                 client: fn _m, _o ->
+                   Agent.update(counter, &(&1 + 1))
+                   reply(payload)
+                 end,
                  link_checker: checker
                )
 
       assert plan.story_count == 21
       assert Enum.any?(Editions.rejections(@day), &(&1.reason == "unresolved_link"))
+
+      # A dead link cannot be repaired by rewriting copy, so it costs one call.
+      assert Agent.get(counter, & &1) == 1
     end
   end
 

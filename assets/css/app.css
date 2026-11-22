@@ -463,3 +463,138 @@ a:hover {
 .pool__foot {
   margin-top: 1.5rem;
 }
+.desk-note {
+  margin: 1.1rem 0 0;
+  padding: 0.9rem 0 1rem;
+  border-bottom: 1px solid var(--ink);
+}
+.desk-note__label {
+  margin: 0 0 0.4rem;
+  color: var(--ink-faint);
+}
+.desk-note__machine {
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+}
+.desk-note__machine::before {
+  content: "· ";
+}
+.desk-note__text {
+  margin: 0;
+  max-width: var(--measure);
+  font-size: 1.0625rem;
+  font-style: italic;
+  line-height: 1.55;
+}
+.section {
+  margin-top: 1.35rem;
+}
+.section > .section-band {
+  margin-top: 0;
+}
+.story {
+  padding: 1.1rem 0 1.2rem;
+  border-bottom: 1px solid var(--ink-faint);
+}
+.story:last-child {
+  border-bottom: 0;
+}
+.story__headline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 4.2vw, 1.7rem);
+  font-weight: 560;
+  line-height: 1.14;
+  letter-spacing: -0.008em;
+  text-wrap: pretty;
+}
+.story__headline a {
+  text-decoration: none;
+}
+.story__headline a:hover {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--ink-faint);
+}
+.story--lead .story__headline {
+  font-size: clamp(1.9rem, 6.4vw, 2.9rem);
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: -0.016em;
+  text-wrap: balance;
+}
+.story__dek {
+  margin: 0.5rem 0 0;
+  max-width: var(--measure);
+  font-size: 1.05rem;
+  font-style: italic;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.story__summary {
+  margin: 0.55rem 0 0;
+}
+.story--lead .story__summary {
+  font-size: 1.1875rem;
+}
+.story--lead .story__summary::first-letter {
+  float: left;
+  padding: 0.06em 0.08em 0 0;
+  font-family: var(--font-display);
+  font-size: 3.4em;
+  font-weight: 600;
+  line-height: 0.82;
+}
+.story__quote {
+  margin: 0.9rem 0 0;
+  padding-left: 0.9rem;
+  border-left: 2px solid var(--press-red);
+}
+.story__quote p {
+  margin: 0;
+  font-size: 1.02rem;
+  font-style: italic;
+  line-height: 1.5;
+}
+.story__quote cite {
+  display: block;
+  margin-top: 0.35rem;
+  font-style: normal;
+  color: var(--ink-faint);
+}
+.ticker {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ticker__item {
+  padding: 0.65rem 0;
+  border-bottom: 1px dotted var(--ink-faint);
+}
+.ticker__headline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.08rem;
+  font-weight: 560;
+  line-height: 1.2;
+}
+.ticker__headline a {
+  text-decoration: none;
+}
+.ticker__line {
+  margin: 0.2rem 0 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+@media (min-width: 44rem) {
+  .also-today .ticker {
+    column-count: 2;
+    column-gap: 2.75rem;
+  }
+  .ticker__item {
+    break-inside: avoid;
+  }
+}

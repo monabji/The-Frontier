@@ -68,14 +68,65 @@ defmodule Frontier.Editor.SourceText do
     String.slice(text, 0, @max_article)
   end
 
-  @doc "Strips the parts of a page that are machinery, not prose."
+  @doc """
+  Strips the parts of a page that are machinery, not prose.
+
+  Page chrome is longer than an article on most sites, so the readable body is
+  taken from `<article>` or `<main>` when the page marks one; navigation,
+  headers, footers and asides are removed before the tags are. Without that,
+  6,000 characters of menu would be the whole source text, and the editor could
+  only quote the navigation.
+  """
   @spec from_html(String.t()) :: String.t()
   def from_html(html) do
-    html
-    |> String.replace(~r/<(script|style|noscript|svg|template)\b[^>]*>.*?<\/\1>/is, " ")
-    |> String.replace(~r/<!--.*?-->/s, " ")
+    body =
+      html
+      |> without(~w(script style noscript svg template))
+      |> without_comments()
+      |> main_content()
+
+    body
+    |> without(~w(nav header footer aside))
     |> Text.plain()
     |> to_string()
+  end
+
+  defp without(html, tags) do
+    Enum.reduce(tags, html, fn tag, acc ->
+      Regex.replace(~r/<#{tag}\b[^>]*>.*?<\/#{tag}>/is, acc, " ")
+    end)
+  end
+
+  defp without_comments(html), do: String.replace(html, ~r/<!--.*?-->/s, " ")
+
+  # Some sites mark a teaser as <article> and put the body elsewhere. A
+  # candidate part is used only if it actually carries prose; otherwise the
+  # whole page (with its chrome already removed) is the source.
+  defp main_content(html) do
+    [element(html, "article"), element(html, "main")]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.find(fn part -> readable_length(part) >= 400 end)
+    |> case do
+      nil -> html
+      part -> part
+    end
+  end
+
+  defp element(html, tag) do
+    ~r/<#{tag}\b[^>]*>(.*?)<\/#{tag}>/is
+    |> Regex.run(html, capture: :all_but_first)
+    |> case do
+      [content] -> content
+      nil -> nil
+    end
+  end
+
+  defp readable_length(html) do
+    html
+    |> without(~w(nav header footer aside))
+    |> Text.plain()
+    |> to_string()
+    |> String.length()
   end
 
   defp default_fetch(url) do

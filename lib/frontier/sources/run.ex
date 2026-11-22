@@ -25,6 +25,7 @@ defmodule Frontier.Sources.Run do
     field :inserted, :integer, default: 0
     field :updated, :integer, default: 0
     field :skipped, :integer, default: 0
+    field :rejected, :integer, default: 0
     field :duration_ms, :integer
     field :error, :string
     field :model, :string
@@ -44,6 +45,7 @@ defmodule Frontier.Sources.Run do
     :inserted,
     :updated,
     :skipped,
+    :rejected,
     :duration_ms,
     :error,
     :model,

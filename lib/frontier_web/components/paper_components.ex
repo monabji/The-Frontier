@@ -25,7 +25,7 @@ defmodule FrontierWeb.PaperComponents do
       <p class="flagline">
         <span class="smallcaps">Daily edition</span>
         <span class="smallcaps">
-          Morning, 06:00 IST<span :if={@read_minutes}> · {@read_minutes} min read</span>
+          06:00 IST<span :if={@read_minutes}> · {@read_minutes} min read</span>
         </span>
       </p>
 

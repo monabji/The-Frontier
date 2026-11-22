@@ -86,7 +86,9 @@ defmodule Frontier.Editor.Prompt do
     not even once in a section and once in Also Today.
     2. The quote is copied character-for-character from that story's source text: one sentence \
     or a clean part of one, at least five words, no ellipses, no paraphrase, no joining two \
-    sentences. If you cannot copy a sentence exactly, do not choose that story.
+    sentences. Give the best one as `quote` and up to two other exact sentences as \
+    `quote_candidates`, so a near-miss can be replaced without dropping the story. If you \
+    cannot copy a sentence exactly, do not choose that story.
     3. The summary reports what the source says: who did what, what changed, and why it matters. \
     No reaction you cannot source, no prediction, no "this could change everything".
     4. The desk note reads the shape of the day — what is busy, what is quiet — and is honest \
@@ -100,11 +102,13 @@ defmodule Frontier.Editor.Prompt do
      "entries": [
        {"story_id": 12, "section": "Front Page", "headline": "...",
         "dek": "lead only, otherwise omit", "summary": "...",
-        "quote": "verbatim from that story's source text"}
+        "quote": "verbatim from that story's source text",
+        "quote_candidates": ["another exact sentence", "a third, optional"]}
      ],
      "also_today": [
        {"story_id": 44, "headline": "...", "summary": "12–18 words",
-        "quote": "verbatim from that story's source text"}
+        "quote": "verbatim from that story's source text",
+        "quote_candidates": ["another exact sentence, optional"]}
      ]}
 
     ## The day's candidates

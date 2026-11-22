@@ -18,7 +18,7 @@ defmodule Frontier.Editor do
   require Logger
 
   alias Frontier.Editions
-  alias Frontier.Editor.{Candidates, Client, Cost, Grounding, Plan, Prompt, Sections}
+  alias Frontier.Editor.{Candidates, Client, Cost, Grounding, Plan, Prompt, Reply, Sections}
   alias Frontier.Newsroom.Pool
   alias Frontier.Sources.Run
   alias Frontier.Repo
@@ -69,8 +69,7 @@ defmodule Frontier.Editor do
   defp prepare(day, opts) do
     case Keyword.get(opts, :candidates) do
       nil ->
-        day
-        |> Pool.paper_stories()
+        Pool.paper_stories(day: day)
         |> Candidates.build(opts)
 
       candidates ->
@@ -79,27 +78,20 @@ defmodule Frontier.Editor do
   end
 
   defp run_editor(day, run, candidates, pool, opts, started) do
-    client = Keyword.get(opts, :client, Client.configured())
-    link_checker = Keyword.get(opts, :link_checker, &Grounding.resolve_link/1)
+    context = %{
+      day: day,
+      candidates: candidates,
+      client: Keyword.get(opts, :client, Client.configured()),
+      link_checker: Keyword.get(opts, :link_checker, &Grounding.resolve_link/1),
+      opts: opts
+    }
 
-    case ask(day, candidates, client, opts, repair: false) do
+    case ask(context, repair: false) do
       {:ok, payload, usage, model} ->
         plan = Plan.validate(payload, candidates)
-        verdict = ground(plan, candidates, link_checker)
-
-        verdict =
-          maybe_repair(
-            day,
-            candidates,
-            client,
-            link_checker,
-            payload,
-            usage,
-            model,
-            plan,
-            verdict,
-            opts
-          )
+        verdict = ground(plan, context)
+        verdict = %{verdict | usage: usage, model: model}
+        verdict = maybe_repair(context, payload, plan, verdict)
 
         finalise(day, run, candidates, pool, verdict, verdict.usage, verdict.model, started, opts)
 
@@ -110,51 +102,52 @@ defmodule Frontier.Editor do
     end
   end
 
-  defp maybe_repair(
-         day,
-         candidates,
-         client,
-         link_checker,
-         payload,
-         usage,
-         model,
-         plan,
-         verdict,
-         opts
-       ) do
-    if repair?(plan, verdict) and Keyword.get(opts, :repair, true) do
+  defp maybe_repair(context, payload, plan, verdict) do
+    if repair?(plan, verdict) and Keyword.get(context.opts, :repair, true) do
       problem = problem(plan, verdict)
 
-      case repair(day, candidates, problem, client, opts) do
+      case repair(context, problem) do
         {:ok, repaired, repair_usage, repair_model} ->
           merged = merge(payload, repaired)
-          plan = Plan.validate(merged, candidates)
-          verdict = ground(plan, candidates, link_checker)
+          plan = Plan.validate(merged, context.candidates)
+          usage = add_usage(verdict.usage, repair_usage)
+          model = verdict.model || repair_model
+          verdict = ground(plan, context)
 
-          Map.merge(verdict, %{
-            usage: add_usage(usage, repair_usage),
-            model: model || repair_model
-          })
+          %{verdict | usage: usage, model: model}
 
         {:error, reason} ->
           Logger.warning(
             "[editor] repair pass failed, keeping the first reply: #{inspect(reason)}"
           )
 
-          Map.merge(verdict, %{usage: usage, model: model})
+          verdict
       end
     else
-      Map.merge(verdict, %{usage: usage, model: model})
+      verdict
     end
   end
 
+  # A dead link cannot be repaired by rewriting copy: the entry would fail the
+  # same check again and the repair call would be wasted. Those entries drop
+  # straight away; everything else gets the one repair.
   defp repair?(plan, verdict) do
-    verdict.failures != [] or too_short(plan) != nil or desk_note_problem(plan) != nil
+    repairable = repairable_failures(verdict)
+    repairable != [] or too_short(plan) != nil or desk_note_problem(plan) != nil
   end
+
+  defp repairable_failures(verdict) do
+    Enum.filter(verdict.failures, fn %{reasons: reasons} ->
+      Enum.all?(reasons, &repairable?/1)
+    end)
+  end
+
+  defp repairable?({:unresolved_link, _reason}), do: false
+  defp repairable?(_reason), do: true
 
   defp problem(plan, verdict) do
     %{
-      failures: verdict.failures,
+      failures: repairable_failures(verdict),
       too_short: too_short(plan),
       desk_note: desk_note_problem(plan),
       chosen_ids: MapSet.new(Enum.map(plan.entries ++ plan.tickers, & &1.story_id))
@@ -175,9 +168,9 @@ defmodule Frontier.Editor do
     end)
   end
 
-  defp repair(day, candidates, problem, client, opts) do
-    messages = Prompt.repair_messages(day, candidates, problem, opts)
-    ask_with(client, messages, Keyword.put(opts, :repair, true))
+  defp repair(context, problem) do
+    messages = Prompt.repair_messages(context.day, context.candidates, problem, context.opts)
+    ask_with(context.client, messages, Keyword.put(context.opts, :repair, true))
   end
 
   # The repair reply is a patch: corrected entries replace the originals by
@@ -185,37 +178,29 @@ defmodule Frontier.Editor do
   # first one alone.
   defp merge(payload, repaired) do
     %{
-      "desk_note" => value(repaired, "desk_note") || value(payload, "desk_note"),
-      "entries" => merge_list(list(payload, "entries"), list(repaired, "entries")),
-      "also_today" => merge_list(list(payload, "also_today"), list(repaired, "also_today"))
+      "desk_note" => Reply.get(repaired, "desk_note") || Reply.get(payload, "desk_note"),
+      "entries" => merge_list(Reply.list(payload, "entries"), Reply.list(repaired, "entries")),
+      "also_today" =>
+        merge_list(Reply.list(payload, "also_today"), Reply.list(repaired, "also_today"))
     }
   end
 
   defp merge_list(original, repaired) do
-    by_id = Map.new(repaired, &{value(&1, "story_id"), &1})
-    known = MapSet.new(Enum.map(original, &value(&1, "story_id")))
+    by_id = Map.new(repaired, &{Reply.get(&1, "story_id"), &1})
+    known = MapSet.new(Enum.map(original, &Reply.get(&1, "story_id")))
 
-    replaced = Enum.map(original, fn item -> Map.get(by_id, value(item, "story_id"), item) end)
-    additions = Enum.reject(repaired, &MapSet.member?(known, value(&1, "story_id")))
+    replaced =
+      Enum.map(original, fn item -> Map.get(by_id, Reply.get(item, "story_id"), item) end)
+
+    additions = Enum.reject(repaired, &MapSet.member?(known, Reply.get(&1, "story_id")))
 
     replaced ++ additions
   end
 
-  defp list(map, key) do
-    case value(map, key) do
-      list when is_list(list) -> Enum.filter(list, &is_map/1)
-      _other -> []
-    end
-  end
-
-  defp value(map, key) when is_map(map) do
-    Map.get(map, key) || Map.get(map, String.to_atom(key))
-  end
-
-  defp ask(day, candidates, client, opts, extra) do
-    call_opts = Keyword.merge(opts, extra)
-    messages = Prompt.messages(day, candidates, call_opts)
-    ask_with(client, messages, call_opts)
+  defp ask(context, extra) do
+    call_opts = Keyword.merge(context.opts, extra)
+    messages = Prompt.messages(context.day, context.candidates, call_opts)
+    ask_with(context.client, messages, call_opts)
   end
 
   defp ask_with(client, messages, opts) do
@@ -223,7 +208,7 @@ defmodule Frontier.Editor do
       {:ok, reply} ->
         with {:ok, content} <- content(reply),
              {:ok, payload} <- decode(content) do
-          {:ok, payload, usage(reply), model(reply)}
+          {:ok, payload, Client.usage(reply), Client.model(reply)}
         end
 
       {:error, reason} ->
@@ -254,22 +239,22 @@ defmodule Frontier.Editor do
 
   # The model's reply, checked against the text it was given. A story that
   # fails a check is not dropped yet: it is handed back once.
-  defp ground(plan, candidates, link_checker) do
-    by_id = Map.new(candidates, &{&1.id, &1})
+  defp ground(plan, context) do
+    by_id = Map.new(context.candidates, &{&1.id, &1})
 
     {entries, entry_failures} =
       Enum.map_reduce(plan.entries, [], fn entry, failures ->
-        case checks(entry, by_id[entry.story_id], link_checker) do
-          [] -> {entry, failures}
-          reasons -> {nil, [%{entry: entry, reasons: reasons} | failures]}
+        case grounded(entry, by_id[entry.story_id], context.link_checker) do
+          {:ok, entry} -> {entry, failures}
+          {:error, reasons} -> {nil, [%{entry: entry, reasons: reasons} | failures]}
         end
       end)
 
     {tickers, ticker_failures} =
       Enum.map_reduce(plan.tickers, [], fn ticker, failures ->
-        case checks(ticker, by_id[ticker.story_id], link_checker) do
-          [] -> {ticker, failures}
-          reasons -> {nil, [%{entry: ticker, reasons: reasons} | failures]}
+        case grounded(ticker, by_id[ticker.story_id], context.link_checker) do
+          {:ok, ticker} -> {ticker, failures}
+          {:error, reasons} -> {nil, [%{entry: ticker, reasons: reasons} | failures]}
         end
       end)
 
@@ -279,24 +264,39 @@ defmodule Frontier.Editor do
       entries: Enum.reject(entries, &is_nil/1),
       tickers: Enum.reject(tickers, &is_nil/1),
       failures: entry_failures ++ ticker_failures,
-      issues: plan.issues
+      issues: plan.issues,
+      usage: %{input_tokens: 0, output_tokens: 0},
+      model: nil
     }
   end
 
-  defp checks(_entry, nil, _link_checker), do: [:unknown_story]
+  defp grounded(_entry, nil, _link_checker), do: {:error, [:unknown_story]}
 
-  defp checks(entry, candidate, link_checker) do
-    [
-      Grounding.check_quote(entry.quote, candidate.text),
-      Grounding.check_entities(entry.headline, candidate.text),
-      Grounding.check_words(entry.summary, entry.kind),
-      link_check(entry.url, link_checker)
-    ]
-    |> Enum.flat_map(fn
-      :ok -> []
-      {:ok, _final} -> []
-      {:error, reason} -> [reason]
-    end)
+  defp grounded(entry, candidate, link_checker) do
+    quote = Grounding.choose_quote(quote_options(entry), candidate.text)
+
+    reasons =
+      [
+        Grounding.check_entities(entry.headline, candidate.text),
+        Grounding.check_words(entry.summary, entry.kind),
+        link_check(entry.url, link_checker)
+      ]
+      |> Enum.flat_map(fn
+        :ok -> []
+        {:ok, _final} -> []
+        {:error, reason} -> [reason]
+      end)
+
+    case {quote, reasons} do
+      {{:ok, chosen}, []} -> {:ok, %{entry | quote: chosen}}
+      {{:ok, _chosen}, reasons} -> {:error, reasons}
+      {{:error, reason}, reasons} -> {:error, [reason | reasons]}
+    end
+  end
+
+  defp quote_options(entry) do
+    [entry.quote | Map.get(entry, :quote_candidates, [])]
+    |> Enum.filter(&is_binary/1)
   end
 
   defp link_check(url, checker) do
@@ -366,7 +366,8 @@ defmodule Frontier.Editor do
       "headline" => entry.headline,
       "dek" => entry.dek,
       "summary" => entry.summary,
-      "quote" => entry.quote
+      "quote" => entry.quote,
+      "quote_candidates" => entry.quote_candidates
     }
   end
 
@@ -375,7 +376,8 @@ defmodule Frontier.Editor do
       "story_id" => ticker.story_id,
       "headline" => ticker.headline,
       "summary" => ticker.summary,
-      "quote" => ticker.quote
+      "quote" => ticker.quote,
+      "quote_candidates" => ticker.quote_candidates
     }
   end
 
@@ -465,7 +467,7 @@ defmodule Frontier.Editor do
       status: "ok",
       fetched: report.candidates,
       inserted: report.printed + report.tickers,
-      updated: report.rejected,
+      rejected: report.rejected,
       model: report.model,
       input_tokens: report.input_tokens,
       output_tokens: report.output_tokens,
@@ -501,19 +503,6 @@ defmodule Frontier.Editor do
       input_tokens: a.input_tokens + b.input_tokens,
       output_tokens: a.output_tokens + b.output_tokens
     }
-  end
-
-  defp usage(reply) when is_map(reply) do
-    usage = Map.get(reply, :usage) || Map.get(reply, "usage") || %{}
-
-    %{
-      input_tokens: Map.get(usage, :input_tokens) || Map.get(usage, "input_tokens") || 0,
-      output_tokens: Map.get(usage, :output_tokens) || Map.get(usage, "output_tokens") || 0
-    }
-  end
-
-  defp model(reply) when is_map(reply) do
-    Map.get(reply, :model) || Map.get(reply, "model")
   end
 
   defp elapsed(started), do: System.monotonic_time(:millisecond) - started
