@@ -1099,16 +1099,16 @@ a:hover {
     font-size: 0.82rem;
   }
 }
+/* The desk note is a printed box on the desk: centred on the page, ruled on
+   all four sides so it reads as one finished block. */
 @media (min-width: 64rem) {
   .desk-note {
     max-width: 30rem;
     margin-left: auto;
-    margin-right: 0;
-    padding-right: 1.25rem;
-    padding-left: 1.25rem;
-    border-left: 1px solid var(--ink);
+    margin-right: auto;
+    padding: 0.9rem 1.25rem 1rem;
+    border: 1px solid var(--ink);
     border-top: 3px solid var(--ink);
-    border-bottom: 1px solid var(--ink);
   }
   .desk-note__text {
     font-size: 0.95rem;
