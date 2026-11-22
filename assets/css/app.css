@@ -882,6 +882,11 @@ a:hover {
   border-bottom: 0;
   padding: 1rem 0 1.15rem;
 }
+/* The section band is the rule above the first story; a second hairline
+   underneath it reads as a box with a missing side. */
+.section > .story:first-of-type {
+  border-top: 0;
+}
 .story--lead {
   border-top: 0;
   padding-top: 0.55rem;
@@ -930,6 +935,31 @@ a:hover {
   .section {
     grid-template-columns: repeat(6, minmax(0, 1fr));
     column-gap: 1.75rem;
+    --section-gap: 1.75rem;
+    /* Stories share their row's height, so the column rule runs the full
+       depth of the section instead of stopping at the end of one story. */
+    align-items: stretch;
+    /* The rule after the last column sits just outside the section; clip it. */
+    overflow: clip;
+    overflow-clip-margin: 8px;
+  }
+  .section > .story {
+    border-top: 0;
+    position: relative;
+  }
+  /* One column rule, set in the middle of the gutter, so every rule is the
+     same length and the text measure is equal in every column. */
+  .section > .story::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    right: calc(var(--section-gap) / -2);
+    width: 1px;
+    background: var(--ink-faint);
+  }
+  /* A short last row must not trail a rule through empty paper. */
+  .section > .story:last-of-type::after {
+    display: none;
   }
   .section--front-page .story--lead {
     grid-column: 1 / -1;
@@ -957,6 +987,7 @@ a:hover {
   .section {
     grid-template-columns: repeat(12, minmax(0, 1fr));
     column-gap: 2rem;
+    --section-gap: 2rem;
   }
   .section {
     margin-top: 1.05rem;
@@ -964,8 +995,6 @@ a:hover {
   .section--front-page .story--lead {
     grid-column: 1 / -1;
     grid-row: auto;
-    padding-right: 0;
-    border-right: 0;
   }
   .story--lead .story__headline {
     text-align: center;
@@ -1065,18 +1094,7 @@ a:hover {
     font-size: 0.82rem;
   }
 }
-/* Newspaper column rules between adjacent stories, like the hairlines between
-   printed columns. */
 @media (min-width: 64rem) {
-  .section--models-and-releases > .story:not(:last-child),
-  .section--tooling-and-dev > .story:not(:last-child),
-  .section--back-page > .story:not(:last-child),
-  .section--research > .story:not(:last-child),
-  .section--the-discourse > .story:not(:last-child),
-  .section--front-page > .story--standard:not(:last-child) {
-    border-right: 1px solid var(--ink-faint);
-    padding-right: 1.5rem;
-  }
   .desk-note {
     max-width: 30rem;
     margin-left: auto;
