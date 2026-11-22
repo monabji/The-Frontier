@@ -2,7 +2,7 @@
 
 # The Frontier
 
-A daily newspaper for AI and technology. One dated edition at 06:00 IST. Every story has a verified source quote and a working link.
+The daily tech e-newspaper. One dated edition at 06:00 IST. 
 
 ![The Frontier front page in Broadsheet layout](assets/screenshot.png)
 
