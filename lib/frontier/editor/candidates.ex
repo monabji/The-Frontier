@@ -27,7 +27,8 @@ defmodule Frontier.Editor.Candidates do
           score: non_neg_integer() | nil,
           comments_count: non_neg_integer() | nil,
           published_at: DateTime.t() | nil,
-          text: String.t()
+          text: String.t(),
+          image_url: String.t() | nil
         }
 
   @doc """
@@ -61,7 +62,7 @@ defmodule Frontier.Editor.Candidates do
         item = membership.raw_item
 
         case SourceText.for_item(item, opts) do
-          {:ok, text} ->
+          {:ok, %{text: text, image_url: fetched_image}} ->
             {:ok,
              %{
                id: story.id,
@@ -74,7 +75,8 @@ defmodule Frontier.Editor.Candidates do
                score: item.score,
                comments_count: item.comments_count,
                published_at: item.published_at || story.first_published_at,
-               text: text
+               text: text,
+               image_url: item.image_url || fetched_image
              }}
 
           {:error, reason} ->

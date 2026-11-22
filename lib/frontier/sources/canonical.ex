@@ -83,6 +83,27 @@ defmodule Frontier.Sources.Canonical do
   def normalize(_url), do: nil
 
   @doc """
+  A source image URL, kept as published.
+
+  Image URLs are signed, resized and cache-busted, so they are not
+  canonicalised. They are only checked for a real http(s) origin and a sane
+  length; the paper links to the source's asset and never copies it.
+  """
+  @spec image_url(String.t() | nil) :: String.t() | nil
+  def image_url(nil), do: nil
+
+  def image_url(url) when is_binary(url) do
+    uri = URI.parse(url)
+
+    if uri.scheme in ["http", "https"] and is_binary(uri.host) and uri.host != "" and
+         byte_size(url) <= 2048 do
+      url
+    end
+  end
+
+  def image_url(_url), do: nil
+
+  @doc """
   The host a reader sees in a source line, without a leading `www.`.
 
       iex> Frontier.Sources.Canonical.host("https://www.example.com/a")

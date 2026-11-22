@@ -17,7 +17,7 @@ defmodule Frontier.Sources.RSS do
 
   require Record
 
-  alias Frontier.Sources.{Item, Text}
+  alias Frontier.Sources.{Canonical, Item, Text}
 
   # `from_lib:` only looks at dependencies, so the header is found where the
   # OTP install actually keeps it.
@@ -138,6 +138,7 @@ defmodule Frontier.Sources.RSS do
           discussion_url: @discussion,
           author: author(entry),
           text: body(entry),
+          image_url: image(entry),
           kind: :post,
           published_at: published_at(entry),
           position: position
@@ -180,6 +181,49 @@ defmodule Frontier.Sources.RSS do
       find(entry, :summary)
     ]
     |> Enum.find_value(fn element -> Text.plain(element && text(element)) end)
+  end
+
+  defp image(entry) do
+    entry
+    |> image_urls()
+    |> Enum.find_value(&Canonical.image_url/1)
+  end
+
+  defp image_urls(element) when elem(element, 0) == :xmlElement do
+    case name(element) do
+      :content ->
+        if image_type?(element), do: media_url(element), else: []
+
+      :thumbnail ->
+        media_url(element)
+
+      :enclosure ->
+        if image_type?(element), do: media_url(element), else: []
+
+      :image ->
+        [
+          attribute(element, :href),
+          text(find(element, :url)),
+          attribute(element, :"rdf:resource")
+        ]
+        |> Enum.filter(&present?/1)
+
+      _other ->
+        children(element) |> Enum.flat_map(&image_urls/1)
+    end
+  end
+
+  defp image_urls(_element), do: []
+
+  defp media_url(element) do
+    [attribute(element, :url)] |> Enum.filter(&present?/1)
+  end
+
+  defp image_type?(element) do
+    type = element |> attribute(:type) |> to_string() |> String.downcase()
+    medium = element |> attribute(:medium) |> to_string() |> String.downcase()
+
+    String.starts_with?(type, "image/") or medium == "image"
   end
 
   defp published_at(entry) do

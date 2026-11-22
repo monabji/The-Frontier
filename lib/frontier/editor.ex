@@ -375,7 +375,8 @@ defmodule Frontier.Editor do
       "dek" => entry.dek,
       "summary" => entry.summary,
       "quote" => entry.quote,
-      "quote_candidates" => entry.quote_candidates
+      "quote_candidates" => entry.quote_candidates,
+      "image_url" => entry.image_url
     }
   end
 
@@ -385,7 +386,8 @@ defmodule Frontier.Editor do
       "headline" => ticker.headline,
       "summary" => ticker.summary,
       "quote" => ticker.quote,
-      "quote_candidates" => ticker.quote_candidates
+      "quote_candidates" => ticker.quote_candidates,
+      "image_url" => ticker.image_url
     }
   end
 

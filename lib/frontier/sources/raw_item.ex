@@ -36,6 +36,7 @@ defmodule Frontier.Sources.RawItem do
     field :discussion_url, :string
     field :author, :string
     field :text, :string
+    field :image_url, :string
     field :score, :integer
     field :comments_count, :integer
     field :position, :integer
@@ -59,6 +60,7 @@ defmodule Frontier.Sources.RawItem do
     :discussion_url,
     :author,
     :text,
+    :image_url,
     :score,
     :comments_count,
     :position,

@@ -56,14 +56,25 @@ defmodule FrontierWeb.PaperComponents do
     ~H"""
     <.desk_note :if={@edition.desk_note} note={@edition.desk_note} />
 
-    <section :for={{section, entries} <- @sections} class="section">
+    <section :for={{section, entries} <- @sections} class={section_class(section)}>
       <.section_band section={section} kicker={entry_count(entries)} />
 
       <article :for={entry <- entries} class={"story story--#{entry.kind}"}>
+        <.story_image
+          :if={entry.image_url && entry.kind != "lead"}
+          entry={entry}
+        />
+
         <h3 class="story__headline">
           <a href={entry.url} rel="noopener noreferrer">{entry.headline}</a>
         </h3>
         <p :if={entry.dek} class="story__dek">{entry.dek}</p>
+
+        <.story_image
+          :if={entry.image_url && entry.kind == "lead"}
+          entry={entry}
+        />
+
         <p class="story__summary">{entry.summary}</p>
         <blockquote :if={entry.quote} class="story__quote">
           <p>{entry.quote}</p>
@@ -80,7 +91,7 @@ defmodule FrontierWeb.PaperComponents do
       </article>
     </section>
 
-    <section :if={@tickers != []} class="section also-today">
+    <section :if={@tickers != []} class="section section--also-today also-today">
       <.section_band section="Also Today" kicker={entry_count(@tickers)} />
 
       <ol class="ticker">
@@ -112,6 +123,30 @@ defmodule FrontierWeb.PaperComponents do
         )}.
       </p>
     </aside>
+    """
+  end
+
+  @doc """
+  A source image, credited to the site it came from. The paper links to the
+  source's asset; it never copies or re-hosts it.
+  """
+  attr :entry, :any, required: true
+  attr :class, :string, default: nil
+
+  def story_image(assigns) do
+    ~H"""
+    <figure class="story__figure">
+      <img
+        src={@entry.image_url}
+        alt={@entry.headline}
+        loading={if @entry.kind == "lead", do: "eager", else: "lazy"}
+        decoding="async"
+        referrerpolicy="no-referrer"
+      />
+      <figcaption class="smallcaps">
+        Image: <a href={@entry.url} rel="noopener noreferrer">{Canonical.host(@entry.url)}</a>
+      </figcaption>
+    </figure>
     """
   end
 
@@ -341,6 +376,18 @@ defmodule FrontierWeb.PaperComponents do
     do: pluralize(count, "comment")
 
   defp discussion_label(_item), do: "Discussion"
+
+  defp section_class(section) do
+    "section section--" <> slug(section)
+  end
+
+  defp slug(section) do
+    section
+    |> String.downcase()
+    |> String.replace("&", "and")
+    |> String.replace(~r/[^a-z0-9]+/, "-")
+    |> String.trim("-")
+  end
 
   defp entry_count(entries) do
     count = length(entries)

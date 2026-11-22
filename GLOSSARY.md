@@ -65,3 +65,4 @@ Vocabulary used across the codebase, issues and docs. When a term here competes 
 - **Front page** — what the reader gets: one lead and a ranked index, built from each source's latest successful run for the edition day.
 - **Fetch** — one run of one source adapter: request, normalize, upsert, with a count of new and refreshed items and how long it took. A failed fetch is logged and reported, never fatal to the other sources.
 - **Source line** — the line under a front-page item that names the site it came from, the date it was posted, its score and its discussion. It is the item's provenance, not decoration.
+- **Source image** — a publisher's own feed image or `og:image`, stored as a URL with a host credit. Printed grayscale, never re-hosted or generated; absent means type, not a placeholder.

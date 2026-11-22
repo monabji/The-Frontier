@@ -396,6 +396,7 @@ defmodule Frontier.Editions do
       dek: entry.dek,
       summary: entry.summary,
       quote: entry.quote,
+      image_url: Map.get(entry, :image_url),
       url: entry.url,
       canonical_url: entry.canonical_url,
       primary_source: entry.primary_source,

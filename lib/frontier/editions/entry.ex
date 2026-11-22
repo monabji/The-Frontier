@@ -26,6 +26,7 @@ defmodule Frontier.Editions.Entry do
     field :dek, :string
     field :summary, :string
     field :quote, :string
+    field :image_url, :string
     field :url, :string
     field :canonical_url, :string
     field :primary_source, :string
@@ -50,6 +51,7 @@ defmodule Frontier.Editions.Entry do
     :dek,
     :summary,
     :quote,
+    :image_url,
     :url,
     :canonical_url,
     :primary_source,

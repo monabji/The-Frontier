@@ -460,6 +460,7 @@ defmodule Frontier.Sources do
       discussion_url: item.discussion_url,
       author: item.author,
       text: item.text,
+      image_url: item.image_url,
       score: item.score,
       comments_count: item.comments_count,
       position: item.position,

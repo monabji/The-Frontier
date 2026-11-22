@@ -16,6 +16,7 @@ defmodule Frontier.Editor.PlanTest do
         score: nil,
         comments_count: nil,
         discussion_url: nil,
+        image_url: "https://example.com/photo-#{id}.jpg",
         text: "Story #{id} happened today."
       },
       overrides
@@ -107,6 +108,7 @@ defmodule Frontier.Editor.PlanTest do
       assert entry.discussion_url == "https://news.ycombinator.com/item?id=1"
       assert entry.score == 120
       assert entry.comments_count == 45
+      assert entry.image_url == "https://example.com/photo-1.jpg"
       assert entry.word_count == 70
     end
   end

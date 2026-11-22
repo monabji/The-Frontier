@@ -16,6 +16,7 @@ defmodule Frontier.Editions.ArtifactTest do
         dek: "A dek.",
         summary: "A summary of the thing that happened.",
         quote: "The thing happened.",
+        image_url: "https://example.com/photo.jpg",
         url: "https://example.com/story",
         canonical_url: "https://example.com/story",
         primary_source: "rss:openai",
@@ -96,6 +97,7 @@ defmodule Frontier.Editions.ArtifactTest do
 
       assert lead["headline"] == "A headline"
       assert lead["quote"] == "The thing happened."
+      assert lead["image_url"] == "https://example.com/photo.jpg"
       assert lead["url"] == "https://example.com/story"
       assert lead["canonical_url"] == "https://example.com/story"
       assert lead["source_label"] == "OpenAI"

@@ -12,7 +12,7 @@ defmodule Frontier.Editor.SourceText do
   that cannot be grounded does not print.
   """
 
-  alias Frontier.Sources.{RawItem, Text}
+  alias Frontier.Sources.{Canonical, RawItem, Text}
 
   # Enough text to find a sentence and judge what the story is about; an order
   # of magnitude smaller than an article.
@@ -27,10 +27,15 @@ defmodule Frontier.Editor.SourceText do
   otherwise one fetch of the item's link. `:fetcher` replaces the network in
   tests and returns `{:ok, body}` or `{:error, reason}`.
   """
-  @spec for_item(RawItem.t(), keyword()) :: {:ok, String.t()} | {:error, term()}
+  @spec for_item(RawItem.t(), keyword()) ::
+          {:ok, %{text: String.t(), image_url: String.t() | nil}} | {:error, term()}
   def for_item(%RawItem{text: text} = item, opts \\ []) do
     if substantial?(text) do
-      {:ok, String.slice(text, 0, @max_article)}
+      {:ok,
+       %{
+         text: String.slice(text, 0, @max_article),
+         image_url: Canonical.image_url(item.image_url)
+       }}
     else
       fetch(item.url, opts)
     end
@@ -40,7 +45,8 @@ defmodule Frontier.Editor.SourceText do
   Fetches a URL and returns readable text, bounded. HTML is stripped; other
   bodies are treated as text.
   """
-  @spec fetch(String.t() | nil, keyword()) :: {:ok, String.t()} | {:error, term()}
+  @spec fetch(String.t() | nil, keyword()) ::
+          {:ok, %{text: String.t(), image_url: String.t() | nil}} | {:error, term()}
   def fetch(url, opts \\ [])
 
   def fetch(nil, _opts), do: {:error, :no_url}
@@ -51,8 +57,65 @@ defmodule Frontier.Editor.SourceText do
     with {:ok, body, content_type} <- normalize_response(fetcher.(url)),
          text <- extract(body, content_type),
          :ok <- enough?(text) do
-      {:ok, text}
+      {:ok, %{text: text, image_url: image_from(body, content_type, url)}}
     end
+  end
+
+  @doc """
+  The page's own preview image, from Open Graph or Twitter metadata.
+
+  The image is not copied: the returned URL points at the source's asset and is
+  only accepted when it is http(s). `base_url` resolves relative metadata.
+  """
+  @spec image_from(String.t(), String.t() | nil, String.t()) :: String.t() | nil
+  def image_from(body, content_type, base_url) when is_binary(body) do
+    if html?(content_type, body) do
+      body
+      |> meta_images()
+      |> Enum.find_value(&resolve_image(&1, base_url))
+    end
+  end
+
+  def image_from(_body, _content_type, _base_url), do: nil
+
+  defp meta_images(html) do
+    ~r/<meta\b[^>]*>/iu
+    |> Regex.scan(html)
+    |> Enum.flat_map(fn [tag] ->
+      attrs = attributes(tag)
+      key = attrs["property"] || attrs["name"]
+
+      if key in ["og:image", "og:image:url", "twitter:image", "twitter:image:src"] do
+        [attrs["content"]]
+      else
+        []
+      end
+    end)
+    |> Enum.filter(&is_binary/1)
+  end
+
+  defp attributes(tag) do
+    ~r/([a-zA-Z:-]+)\s*=\s*["']([^"']*)["']/u
+    |> Regex.scan(tag)
+    |> Map.new(fn [_, key, value] -> {String.downcase(key), value} end)
+  end
+
+  defp resolve_image(src, base_url) do
+    # `content` attributes are HTML-escaped; an `&amp;` in a signed CDN query
+    # must become a real `&` before the URL is used.
+    src = Text.plain(src) || src
+    uri = URI.parse(src)
+
+    absolute =
+      if uri.scheme in ["http", "https"] do
+        src
+      else
+        URI.merge(base_url, src) |> to_string()
+      end
+
+    Canonical.image_url(absolute)
+  rescue
+    _ -> nil
   end
 
   @doc "Readable text from a body, HTML or plain."

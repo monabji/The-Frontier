@@ -15,7 +15,7 @@ defmodule Frontier.Sources.Bluesky do
 
   @behaviour Frontier.Sources.Adapter
 
-  alias Frontier.Sources.{Adapter, Item, Text}
+  alias Frontier.Sources.{Adapter, Canonical, Item, Text}
 
   @endpoint "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed"
 
@@ -95,6 +95,7 @@ defmodule Frontier.Sources.Bluesky do
           discussion_url: permalink,
           author: handle,
           text: text,
+          image_url: image(post),
           kind: :post,
           score: post["likeCount"],
           comments_count: post["replyCount"],
@@ -107,6 +108,18 @@ defmodule Frontier.Sources.Bluesky do
   end
 
   defp item(_post), do: []
+
+  defp image(%{"embed" => %{"images" => images}}) when is_list(images) do
+    Enum.find_value(images, fn image ->
+      Canonical.image_url(image["fullsize"] || image["thumb"])
+    end)
+  end
+
+  defp image(%{"embed" => %{"external" => external}}) when is_map(external) do
+    Canonical.image_url(external["thumb"])
+  end
+
+  defp image(_post), do: nil
 
   defp permalink(handle, uri) do
     rkey = uri |> String.split("/") |> List.last()

@@ -66,6 +66,14 @@ defmodule Frontier.Sources.BlueskyTest do
       assert first.external_id =~ "at://"
     end
 
+    test "keeps an image from a post that has one", %{payload: payload} do
+      assert {:ok, items} = Bluesky.normalize(payload)
+
+      assert Enum.any?(items, fn item ->
+               is_binary(item.image_url) and item.image_url =~ "cdn.bsky.app"
+             end)
+    end
+
     test "keeps the post text as plain text a quote could come from", %{payload: payload} do
       assert {:ok, [first | _]} = Bluesky.normalize(payload)
 

@@ -35,7 +35,7 @@ calligraphic contrast.
 
 One accent, spent once per device: focus and hover are the interactive use, the
 drop cap is the editorial one, and they never appear together. No gradients, no
-shadows, no cards, no rounded corners, no images.
+shadows, no cards, no rounded corners, no decorative images. Photographs are the source's, credited and grayscale.
 
 ## Measure and scale
 
@@ -58,6 +58,15 @@ shadows, no cards, no rounded corners, no images.
 - **Read time** sits in the edition flag (`06:00 IST · 9 min read`),
   not in a badge or a card: the edition promises a length, so the page says it
   once, in the line that already names the edition.
+
+## Photography
+
+A photograph is the source's evidence, not decoration. Use the publisher's own
+feed image or `og:image`, print it grayscale with a slight contrast lift, and
+credit the article's host in a small-caps caption. The lead gets a 21:9 crop,
+standard stories 3:2, the Long Read 21:9. No overlays, no rounded corners, no
+stock, no generated art. A story without an image is set as type; no placeholder
+is invented to fill the hole.
 
 ## Rules
 

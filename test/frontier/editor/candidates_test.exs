@@ -40,7 +40,7 @@ defmodule Frontier.Editor.CandidatesTest do
     test "a substantial stored excerpt is used without a request" do
       fetcher = fn _url -> flunk("a stored excerpt must not be re-fetched") end
 
-      assert {:ok, text} =
+      assert {:ok, %{text: text, image_url: nil}} =
                SourceText.for_item(story(1, @stored).story_items |> hd() |> Map.get(:raw_item),
                  fetcher: fetcher
                )
@@ -58,8 +58,12 @@ defmodule Frontier.Editor.CandidatesTest do
       end
 
       raw = hd(story(2, "Too short.").story_items).raw_item
-      assert {:ok, text} = SourceText.for_item(raw, fetcher: fetcher)
+
+      assert {:ok, %{text: text, image_url: image_url}} =
+               SourceText.for_item(raw, fetcher: fetcher)
+
       assert text =~ "A real sentence from the article"
+      assert image_url == nil
       assert_received {:fetched, "https://example.com/story-2"}
     end
 
@@ -94,6 +98,38 @@ defmodule Frontier.Editor.CandidatesTest do
       """
 
       assert SourceText.from_html(html) =~ "The real report begins"
+    end
+
+    test "the article's Open Graph image comes back with its text" do
+      fetcher = fn _url ->
+        {:ok,
+         """
+         <html><head>
+         <meta property="og:image" content="https://cdn.example.com/lead.jpg">
+         </head><body><article>#{String.duplicate("A real sentence from the article. ", 20)}</article></body></html>
+         """, "text/html"}
+      end
+
+      raw = hd(story(2, "Too short.").story_items).raw_item
+
+      assert {:ok, %{image_url: "https://cdn.example.com/lead.jpg"}} =
+               SourceText.for_item(raw, fetcher: fetcher)
+    end
+
+    test "an escaped ampersand in an image URL is decoded" do
+      html =
+        ~s(<html><head><meta property="og:image" content="https://cdn.example.com/lead.jpg?w=1600&amp;h=900"></head><body>#{String.duplicate("A sentence. ", 40)}</body></html>)
+
+      assert SourceText.image_from(html, "text/html", "https://example.com/story") ==
+               "https://cdn.example.com/lead.jpg?w=1600&h=900"
+    end
+
+    test "a relative Open Graph image resolves against the article" do
+      html =
+        ~s(<html><head><meta property="og:image" content="/images/lead.jpg"></head><body>#{String.duplicate("A sentence. ", 40)}</body></html>)
+
+      assert SourceText.image_from(html, "text/html", "https://example.com/story") ==
+               "https://example.com/images/lead.jpg"
     end
 
     test "HTML machinery is stripped, entities decoded, text bounded" do

@@ -17,7 +17,7 @@ A daily, free, public newspaper for AI and tech: one dated edition each morning,
 | Sections | Front Page, Models & Releases, Research, Tooling & Dev, The Discourse, The Long Read, Back Page, plus Also Today |
 | Stack | Elixir + Phoenix LiveView + SQLite + Oban, one release binary, one free VM |
 | Identity | Signed anonymous cookie ID, no accounts; append-only events under a versioned taste document; saveable "your paper" link; explicit forget |
-| Design | Letterpress broadsheet: Newsreader body, Fraunces display (settled in phase 0, see `docs/DESIGN.md`), letterspaced small-cap datelines, no images in v1, Night Edition |
+| Design | Letterpress broadsheet: Newsreader body, Fraunces display (settled in phase 0, see `docs/DESIGN.md`), letterspaced small-cap datelines, credited grayscale source images, Night Edition |
 | Ops | Oracle Cloud Always Free ARM VM, Caddy TLS, Oban cron, alerts, delayed-edition fallback |
 | Money | $0 infrastructure; LLM cents per edition; X is the only paid upgrade and is not needed to launch |
 
@@ -37,11 +37,11 @@ See `docs/adr/` for the decisions worth remembering and `GLOSSARY.md` for vocabu
 | Table | Holds |
 |---|---|
 | `sources` | adapter key, enabled flag, config |
-| `raw_items` | fetched posts/articles/papers: source + external id (the identity), URL, canonical URL, content hash, kind, discussion URL, author, title, text excerpt, score, comment count, fetch-rank position, edition day, run id, first/last seen times |
+| `raw_items` | fetched posts/articles/papers: source + external id (the identity), URL, canonical URL, content hash, kind, discussion URL, author, title, text excerpt, image URL, score, comment count, fetch-rank position, edition day, run id, first/last seen times |
 | `stories` | clustered events: edition day, cluster key, headline, canonical/primary URL, item and source counts, first/last published. Dek, summary, quote and section arrive with the editor |
 | `story_items` | story ↔ raw item membership and role (primary, discussion, duplicate) |
 | `editions` | day, published time, status (draft/published/late/frozen), current artifact hash + path, built/frozen times, desk note, stats |
-| `edition_entries` | edition ↔ story placement: section, position, kind (lead/standard/ticker/quote), origin (edition/late/wire), and the editor's copy (dek, summary, quote, section). Editorial copy lives here, never on `stories`: the clusterer rewrites stories on every rebuild |
+| `edition_entries` | edition ↔ story placement: section, position, kind (lead/standard/ticker/quote), origin (edition/late/wire), and the editor's copy and image URL (dek, summary, quote, section). Editorial copy lives here, never on `stories`: the clusterer rewrites stories on every rebuild |
 | `readers` | signed reader ID, first/last seen |
 | `profiles` | reader ↔ versioned profile document |
 | `profile_events` | append-only chips, thumb ups/downs, edits |
@@ -85,7 +85,7 @@ Fold generation is lazy: on a reader's first page load of the day, the editor bu
 
 - Wordmark + date line, hairline rules, small-caps section kickers, drop cap on the lead.
 - Body: **Newsreader**. Display: **Fraunces**, settled in phase 0 — the wordmark and headlines are the only place it appears, and it is named once, in `--font-display` (`docs/DESIGN.md`). Datelines/source lines: letterspaced small caps of the text face. No mono by default.
-- No images in v1; a single credited source image on the lead may be earned later. No AI illustrations.
+- Source images only: the publisher's feed media or `og:image`, credited to its host, rendered grayscale, never re-hosted. No stock, no AI illustrations, no placeholder art (ADR 0010).
 - Mobile: single column, larger type, masthead and rules retained — a broadsheet folded, not a web app.
 - Night Edition: dimmed newsprint, not OLED black.
 

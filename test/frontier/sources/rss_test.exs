@@ -55,6 +55,15 @@ defmodule Frontier.Sources.RSSTest do
       assert String.length(first.text) <= 4_000
     end
 
+    test "keeps the feed's own image for the page" do
+      assert {:ok, items} = RSS.normalize(File.read!("test/fixtures/rss/ars-technica.xml"))
+
+      item = Enum.find(items, &(&1.title =~ "Godzilla"))
+
+      assert item.image_url =~ "cdn.arstechnica.net"
+      assert String.starts_with?(item.image_url, "https://")
+    end
+
     test "gives every item a link the paper can print" do
       assert {:ok, items} = RSS.normalize(File.read!("test/fixtures/rss/google-ai.xml"))
 

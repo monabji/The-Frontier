@@ -146,6 +146,27 @@ defmodule FrontierWeb.ArtifactPageTest do
     end
   end
 
+  describe "the broadsheet page" do
+    test "a story image is printed with its source credit", %{conn: conn, day: day} do
+      image_day = Date.add(day, -1)
+
+      write_artifact(
+        image_day,
+        "published",
+        "An edition with a photograph.",
+        "https://cdn.example.com/photo.jpg"
+      )
+
+      html = get(conn, edition_path(image_day)) |> html_response(200)
+      doc = LazyHTML.from_document(html)
+
+      assert html =~ ~s(src="https://cdn.example.com/photo.jpg")
+      assert html =~ "Image:"
+      assert html =~ "example.com"
+      assert doc |> LazyHTML.query(".section--front-page .story--lead") |> Enum.count() == 1
+    end
+  end
+
   describe "the archive" do
     test "lists every published day, newest first", %{conn: conn, day: day} do
       previous = Date.add(day, -1)
@@ -189,7 +210,7 @@ defmodule FrontierWeb.ArtifactPageTest do
     end
   end
 
-  defp write_artifact(day, status, desk_note) do
+  defp write_artifact(day, status, desk_note, image_url \\ nil) do
     entry = %Entry{
       section: "Front Page",
       position: 1,
@@ -198,6 +219,7 @@ defmodule FrontierWeb.ArtifactPageTest do
       dek: "A previous dek.",
       summary: "A previous summary.",
       quote: "A previous quote.",
+      image_url: image_url,
       url: "https://example.com/previous",
       canonical_url: "https://example.com/previous",
       source_label: "OpenAI",
