@@ -80,7 +80,9 @@ config :frontier, Frontier.Editor.Client.HTTP,
   base_url: "https://api.openai.com/v1",
   model: "gpt-4o-mini",
   temperature: 0.4,
-  max_tokens: 8_000
+  max_tokens: 8_000,
+  # A whole edition takes far longer than a feed fetch.
+  timeout: 180_000
 
 # Dollars per million tokens. The run records micro-dollars from these; change
 # them when a provider changes its price rather than editing code.

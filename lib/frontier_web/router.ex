@@ -28,6 +28,7 @@ defmodule FrontierWeb.Router do
     post "/forget", ReaderController, :forget
     post "/thumbs", ReaderController, :thumb
     get "/recover/:token", ReaderController, :recover
+    post "/recover/:token", ReaderController, :restore
     get "/:year/:month/:day", PageController, :show
   end
 

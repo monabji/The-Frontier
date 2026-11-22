@@ -43,7 +43,7 @@ defmodule Frontier.Readers do
   @doc "The reader id in a signed cookie value, if it is genuine."
   @spec verify(String.t()) :: {:ok, String.t()} | {:error, term()}
   def verify(token) do
-    Phoenix.Token.verify(secret(), @cookie_salt, token, max_age: :infinity)
+    Phoenix.Token.verify(secret(), @cookie_salt, token, max_age: @cookie_max_age)
   end
 
   @doc "A saveable link token for a reader id."
@@ -53,7 +53,7 @@ defmodule Frontier.Readers do
   @doc "The reader id in a recovery link token, if it is genuine."
   @spec verify_recovery(String.t()) :: {:ok, String.t()} | {:error, term()}
   def verify_recovery(token) do
-    Phoenix.Token.verify(secret(), @recovery_salt, token, max_age: :infinity)
+    Phoenix.Token.verify(secret(), @recovery_salt, token, max_age: @cookie_max_age)
   end
 
   @doc "The reader id from the request's cookie, without touching the database."

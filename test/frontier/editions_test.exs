@@ -1,5 +1,5 @@
 defmodule Frontier.EditionsTest do
-  use Frontier.DataCase, async: true
+  use Frontier.DataCase, async: false
 
   alias Frontier.ClusteringFixtures
   alias Frontier.EditionStorage

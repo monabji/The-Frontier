@@ -65,6 +65,15 @@ defmodule Frontier.Runs do
     |> Repo.update!()
   end
 
+  @doc "Whether a stage has a successful run for a day."
+  @spec successful?(Date.t(), String.t()) :: boolean()
+  def successful?(day, stage) do
+    Repo.exists?(
+      from run in Run,
+        where: run.edition_day == ^day and run.stage == ^stage and run.status == "ok"
+    )
+  end
+
   @doc "Every run for a day, in the order it happened."
   @spec list(Date.t()) :: [Run.t()]
   def list(day) do

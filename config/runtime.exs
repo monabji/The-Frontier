@@ -44,7 +44,8 @@ config :frontier, Frontier.Editor.Client.HTTP,
   model: System.get_env("FRONTIER_LLM_MODEL", "gpt-4o-mini"),
   api_key: System.get_env("FRONTIER_LLM_API_KEY") || System.get_env("OPENAI_API_KEY"),
   temperature: 0.4,
-  max_tokens: 8_000
+  max_tokens: 8_000,
+  timeout: String.to_integer(System.get_env("FRONTIER_LLM_TIMEOUT_MS", "180000"))
 
 config :frontier, :editor_pricing, %{
   input_per_million: parse_price.("FRONTIER_LLM_INPUT_PRICE", 0.15),
@@ -85,6 +86,9 @@ if config_env() == :dev do
 end
 
 if config_env() == :prod do
+  # The cookie is identity; it must never travel over plain HTTP.
+  config :frontier, :secure_cookies, true
+
   database_path =
     System.get_env("DATABASE_PATH") ||
       raise """
@@ -94,7 +98,10 @@ if config_env() == :prod do
 
   config :frontier, Frontier.Repo,
     database: database_path,
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5")
+    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5"),
+    journal_mode: :wal,
+    busy_timeout: 5_000,
+    synchronous: :normal
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you

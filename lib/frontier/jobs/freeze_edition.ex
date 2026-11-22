@@ -13,8 +13,8 @@ defmodule Frontier.Jobs.FreezeEdition do
   alias Frontier.{Editions, Runs}
 
   @impl Oban.Worker
-  def perform(%Oban.Job{args: args, attempt: attempt, max_attempts: max_attempts}) do
-    day = Frontier.Jobs.day(args, Date.add(Frontier.Newsroom.Dateline.edition_date(), -1))
+  def perform(%Oban.Job{attempt: attempt, max_attempts: max_attempts} = job) do
+    day = Frontier.Jobs.scheduled_day(job, -1)
     run = Runs.start("freeze", day)
 
     case Editions.freeze(day) do

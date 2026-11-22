@@ -114,21 +114,76 @@ defmodule FrontierWeb.ReaderFlowTest do
 
       html = get(recycle(conn), ~p"/your-paper") |> html_response(200)
       path = recovery_path(html)
+      original = Repo.one!(Readers.Reader)
 
-      # A different browser: no cookies at all.
-      fresh = get(build_conn(), path)
+      # A different browser: no cookies at all. The GET is only a confirmation.
+      confirmation_conn = get(build_conn(), path)
+      confirmation = html_response(confirmation_conn, 200)
+      assert confirmation =~ "Restore this paper"
+      assert confirmation =~ "Anyone who has the link can restore it"
 
-      assert redirected_to(fresh) == "/your-paper"
-      assert fresh.resp_cookies["frontier_reader"]
+      {:ok, minted} = Readers.verify(confirmation_conn.resp_cookies["frontier_reader"].value)
+      refute minted == original.public_id
 
-      html = get(recycle(fresh), ~p"/your-paper") |> html_response(200)
+      restored =
+        post(recycle(confirmation_conn), path, %{"_csrf_token" => csrf(confirmation)})
+
+      assert redirected_to(restored) == "/your-paper"
+
+      html = get(recycle(restored), ~p"/your-paper") |> html_response(200)
       assert html =~ "Models &amp; releases"
       assert html =~ "Tools &amp; code"
       assert html =~ "example.com"
     end
 
+    test "refuses to replace a different paper in the same browser", %{conn: conn} do
+      html = get(conn, ~p"/start") |> html_response(200)
+
+      conn =
+        post(conn, ~p"/start", %{
+          "_csrf_token" => csrf(html),
+          "chips" => ["models"],
+          "trusted_accounts" => ""
+        })
+
+      other = Readers.ensure(Readers.new_id())
+      {:ok, _} = Profiles.onboard(other, ["research"], "")
+      path = "/recover/" <> Readers.recovery_token(other.public_id)
+
+      confirmation_conn = get(recycle(conn), path)
+      confirmation = html_response(confirmation_conn, 200)
+      assert confirmation =~ "different paper"
+
+      paper = get(recycle(conn), ~p"/your-paper") |> html_response(200)
+
+      refused =
+        post(recycle(confirmation_conn), path, %{"_csrf_token" => csrf(paper)})
+
+      assert response(refused, 409) =~ "different paper"
+
+      html = get(recycle(refused), ~p"/your-paper") |> html_response(200)
+      assert html =~ "Models &amp; releases"
+      refute html =~ "Research"
+    end
+
     test "a tampered recovery link is refused" do
       assert get(build_conn(), "/recover/not-a-real-token") |> response(404) =~ "not valid"
+    end
+  end
+
+  describe "a tampered cookie" do
+    test "is rejected and a fresh identity minted", %{conn: conn} do
+      conn =
+        conn
+        |> Plug.Conn.put_req_header("cookie", "frontier_reader=not-a-real-token")
+        |> get(~p"/start")
+
+      assert html_response(conn, 200) =~ "Tell the paper"
+
+      {:ok, minted} = Readers.verify(conn.resp_cookies["frontier_reader"].value)
+      assert String.length(minted) == 22
+      refute minted == "not-a-real-token"
+      assert Repo.aggregate(Readers.Reader, :count) == 0
     end
   end
 
@@ -146,6 +201,8 @@ defmodule FrontierWeb.ReaderFlowTest do
       assert html =~ "Forget this reader"
       assert html =~ "HttpOnly"
       assert html =~ "SameSite"
+      assert html =~ "read and change it"
+      assert html =~ "two years"
     end
 
     test "no table has an email, password or account column" do

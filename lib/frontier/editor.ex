@@ -315,11 +315,19 @@ defmodule Frontier.Editor do
         fail_run(run, reason, started, %{usage: usage, model: model})
         {:error, reason}
 
+      desk_note_issue = Enum.find(plan.issues, &match?({:desk_note, _}, &1)) ->
+        rejections = rejections(verdict, pool)
+        :ok = Editions.record_rejections(day, rejections)
+
+        reason = {:desk_note_invalid, elem(desk_note_issue, 1)}
+        fail_run(run, reason, started, %{usage: usage, model: model})
+        {:error, reason}
+
       plan.desk_note == nil ->
         rejections = rejections(verdict, pool)
         :ok = Editions.record_rejections(day, rejections)
 
-        reason = :desk_note_missing
+        reason = {:desk_note_invalid, :missing}
         fail_run(run, reason, started, %{usage: usage, model: model})
         {:error, reason}
 

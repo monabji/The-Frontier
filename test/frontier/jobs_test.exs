@@ -39,7 +39,12 @@ defmodule Frontier.JobsTest do
     }
   end
 
+  defp morning_ok!(day) do
+    Runs.start("daily", day) |> Runs.finish(inserted: 1)
+  end
+
   defp draft!(day) do
+    morning_ok!(day)
     items = ClusteringFixtures.seed!(day)
     Pool.rebuild(day, items: items)
     [story] = Pool.list_stories(day: day)
@@ -91,9 +96,45 @@ defmodule Frontier.JobsTest do
       assert run.error =~ "no_edition"
     end
 
-    test "a draft is published as the day's artifact", %{} do
-      :ok = draft!(@day)
+    test "a draft is published only after a successful morning run", %{} do
+      draft_day = @day
+      items = ClusteringFixtures.seed!(draft_day)
+      Pool.rebuild(draft_day, items: items)
+      [story] = Pool.list_stories(day: draft_day)
 
+      {:ok, _} =
+        Editions.save_draft(draft_day, %{
+          desk_note: "A quiet morning, honestly told, with the paper shorter than usual.",
+          entries: [
+            %{
+              story_id: story.id,
+              url: story.primary_url,
+              canonical_url: story.canonical_url,
+              section: "Front Page",
+              kind: :lead,
+              position: 1,
+              headline: "A headline",
+              dek: "A dek.",
+              summary: String.duplicate("word ", 130),
+              quote: "A quote from the source.",
+              primary_source: story.primary_source,
+              source_label: "Hugging Face",
+              discussion_url: nil,
+              score: nil,
+              comments_count: nil,
+              published_at: story.first_published_at,
+              word_count: 130
+            }
+          ],
+          tickers: [],
+          issues: [],
+          story_count: 1,
+          word_count: 900
+        })
+
+      assert {:error, :no_successful_morning_run} = PublishEdition.perform(job(@day))
+
+      morning_ok!(@day)
       assert :ok = PublishEdition.perform(job(@day))
 
       edition = Editions.get(@day)
@@ -101,9 +142,10 @@ defmodule Frontier.JobsTest do
       assert edition.artifact_hash
       assert Editions.artifact(@day).status == "published"
 
-      [run] = Enum.filter(Runs.list(@day), &(&1.stage == "publish"))
-      assert run.status == "ok"
-      assert run.inserted == 1
+      runs = Enum.filter(Runs.list(@day), &(&1.stage == "publish"))
+      assert Enum.any?(runs, &(&1.status == "error" and &1.error =~ "no_successful"))
+      assert List.last(runs).status == "ok"
+      assert List.last(runs).inserted == 1
     end
   end
 
@@ -147,6 +189,13 @@ defmodule Frontier.JobsTest do
     test "an explicit day is used and a missing one falls back to the edition day" do
       assert Jobs.day(%{"day" => "2026-11-22"}) == ~D[2026-11-22]
       assert Jobs.day(%{}) == Frontier.Newsroom.Dateline.edition_date()
+    end
+
+    test "a delayed job uses the day it was enqueued for" do
+      job = %Oban.Job{args: %{}, inserted_at: ~U[2026-11-21 23:45:00Z]}
+
+      assert Jobs.scheduled_day(job) == ~D[2026-11-22]
+      assert Jobs.scheduled_day(job, -1) == ~D[2026-11-21]
     end
 
     test "a malformed day is a job error, not a silent wrong edition" do

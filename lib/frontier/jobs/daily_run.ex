@@ -12,8 +12,8 @@ defmodule Frontier.Jobs.DailyRun do
   use Oban.Worker, queue: :default, max_attempts: 3
 
   @impl Oban.Worker
-  def perform(%Oban.Job{args: args, attempt: attempt, max_attempts: max_attempts}) do
-    day = Frontier.Jobs.day(args)
+  def perform(%Oban.Job{attempt: attempt, max_attempts: max_attempts} = job) do
+    day = Frontier.Jobs.scheduled_day(job)
 
     case Frontier.Daily.run(day) do
       {:ok, _report} ->

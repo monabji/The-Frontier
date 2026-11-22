@@ -11,7 +11,7 @@ defmodule Frontier.Jobs.Notify do
     Attempt: #{attempt} of #{max_attempts}
     Reason: #{format(reason)}
 
-    Readers are being served the previous published edition with a delayed banner.
+    Readers are served the previous published edition until a new one is published; after 06:00 that edition carries a delayed banner.
     Run log: mix frontier.log --day #{day}
     """
 

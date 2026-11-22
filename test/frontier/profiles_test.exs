@@ -58,7 +58,7 @@ defmodule Frontier.ProfilesTest do
       assert event.edition_day == @day
     end
 
-    test "a second thumb changes the map and counts both statements", %{reader: reader} do
+    test "a second thumb changes the map and the counts describe the map", %{reader: reader} do
       story = "https://example.com/a-story"
 
       {:ok, _} = Profiles.thumb(reader, story, @day, "up")
@@ -66,8 +66,28 @@ defmodule Frontier.ProfilesTest do
 
       assert profile.version == 2
       assert profile.document["thumbs"] == %{story => "down"}
-      assert profile.document["thumb_counts"] == %{"up" => 1, "down" => 1}
+      assert profile.document["thumb_counts"] == %{"up" => 0, "down" => 1}
       assert length(Profiles.events(reader)) == 2
+    end
+
+    test "the target is canonicalised and must be an http(s) URL of sane length", %{
+      reader: reader
+    } do
+      assert {:ok, profile} =
+               Profiles.thumb(reader, "http://www.example.com/a-story?utm_source=x", @day, "up")
+
+      assert profile.document["thumbs"] == %{"https://example.com/a-story" => "up"}
+
+      assert {:error, :invalid_story} =
+               Profiles.thumb(reader, "javascript:alert(1)", @day, "up")
+
+      assert {:error, :invalid_story} =
+               Profiles.thumb(
+                 reader,
+                 "https://example.com/" <> String.duplicate("a", 2_050),
+                 @day,
+                 "up"
+               )
     end
 
     test "a malformed thumb is refused, not stored", %{reader: reader} do

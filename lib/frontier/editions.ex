@@ -107,8 +107,27 @@ defmodule Frontier.Editions do
       nil ->
         {:error, :no_edition}
 
+      %Edition{status: "frozen"} = _edition ->
+        {:error, :edition_is_frozen}
+
       %Edition{} = edition ->
-        assemble_edition(edition, opts)
+        if Store.frozen?(day) do
+          {:error, :edition_is_frozen}
+        else
+          assemble_if_draft(edition, opts)
+        end
+    end
+  end
+
+  defp assemble_if_draft(%Edition{status: "draft"} = edition, opts) do
+    assemble_edition(edition, opts)
+  end
+
+  defp assemble_if_draft(%Edition{} = edition, opts) do
+    if Keyword.get(opts, :republish, false) do
+      assemble_edition(edition, opts)
+    else
+      {:error, :edition_is_published}
     end
   end
 
@@ -138,6 +157,14 @@ defmodule Frontier.Editions do
   """
   @spec publish(Date.t(), keyword()) :: {:ok, Edition.t()} | {:error, term()}
   def publish(day, opts \\ []) do
+    if Store.frozen?(day) do
+      {:error, :edition_is_frozen}
+    else
+      do_publish(day, opts)
+    end
+  end
+
+  defp do_publish(day, opts) do
     now = Keyword.get_lazy(opts, :now, fn -> DateTime.utc_now() |> DateTime.truncate(:second) end)
 
     case get(day) do
@@ -146,7 +173,20 @@ defmodule Frontier.Editions do
 
       %Edition{status: status, artifact_hash: hash} = edition
       when status in ["published", "late"] and is_binary(hash) ->
-        {:ok, edition}
+        if Store.current_hash(day) == hash do
+          {:ok, edition}
+        else
+          # The database says published but the store does not hold that
+          # version (a restore, a lost volume). Rebuild it rather than tell the
+          # operator everything is fine while readers see yesterday.
+          case assemble_edition(edition,
+                 status: edition.status,
+                 published_at: edition.published_at || now
+               ) do
+            {:ok, %{edition: saved}} -> {:ok, saved}
+            {:error, reason} -> {:error, reason}
+          end
+        end
 
       %Edition{status: "frozen"} ->
         {:error, :edition_is_frozen}

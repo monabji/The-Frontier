@@ -12,6 +12,7 @@ defmodule Frontier.Clock do
     case Application.get_env(:frontier, :clock) do
       nil -> DateTime.utc_now() |> DateTime.truncate(:second)
       clock when is_function(clock, 0) -> clock.() |> DateTime.truncate(:second)
+      _other -> DateTime.utc_now() |> DateTime.truncate(:second)
     end
   end
 end

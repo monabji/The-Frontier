@@ -54,6 +54,39 @@ defmodule Frontier.Editor.Client.HTTPTest do
     end
   end
 
+  describe "the model call's budget" do
+    test "uses its own long timeout, not the feed fetch's ten seconds" do
+      Application.put_env(:frontier, HTTP,
+        base_url: "https://example.test/v1",
+        model: "test-model",
+        api_key: "test-key",
+        timeout: 180_000
+      )
+
+      test = self()
+
+      http = fn url, _body, _headers, opts ->
+        send(test, {:http, url, opts})
+
+        {:ok,
+         %{
+           status: 200,
+           body:
+             Jason.encode!(%{
+               "model" => "test-model",
+               "choices" => [%{"message" => %{"content" => "{\"ok\":true}"}}],
+               "usage" => %{"prompt_tokens" => 1, "completion_tokens" => 2}
+             })
+         }}
+      end
+
+      assert {:ok, reply} = HTTP.complete([%{role: "user", content: "hi"}], http: http)
+      assert reply.content == "{\"ok\":true}"
+      assert_received {:http, "https://example.test/v1/chat/completions", timeout: 180_000}
+      assert HTTP.timeout(timeout: 5_000) == 5_000
+    end
+  end
+
   describe "configuration" do
     test "a missing key fails before a request is attempted" do
       assert {:error, :missing_api_key} = HTTP.complete([%{role: "user", content: "hi"}])

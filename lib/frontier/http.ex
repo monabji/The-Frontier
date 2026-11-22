@@ -52,12 +52,15 @@ defmodule Frontier.HTTP do
   POSTs a body and returns the response without interpreting it. Used by the
   editor's model client; redirects are not followed because a POST that
   redirects is a misconfigured endpoint, not a moved article.
+
+  `:timeout` overrides the GET/HEAD timeout. A model writing a whole edition
+  takes far longer than a feed fetch, and the caller owns that budget.
   """
-  @spec post(String.t(), binary(), [{String.t(), String.t()}]) ::
+  @spec post(String.t(), binary(), [{String.t(), String.t()}], keyword()) ::
           {:ok, response()} | {:error, term()}
-  def post(url, body, headers) when is_binary(url) and is_binary(body) do
+  def post(url, body, headers, opts \\ []) when is_binary(url) and is_binary(body) do
     if network?() do
-      case request(:post, url, body, headers) do
+      case request(:post, url, body, headers, opts) do
         {:ok, %{status: status} = response} when status in 200..299 ->
           {:ok, response}
 
@@ -112,10 +115,12 @@ defmodule Frontier.HTTP do
   end
 
   defp request(method, url) do
-    request(method, url, nil, [])
+    request(method, url, nil, [], [])
   end
 
-  defp request(method, url, body, extra_headers) do
+  defp request(method, url, body, extra_headers, opts) do
+    timeout = Keyword.get(opts, :timeout, @timeout)
+
     headers =
       [
         {~c"user-agent", String.to_charlist(@user_agent)},
@@ -131,7 +136,7 @@ defmodule Frontier.HTTP do
         body -> {String.to_charlist(url), headers, ~c"application/json", body}
       end
 
-    case :httpc.request(method, request, http_options(), body_format: :binary) do
+    case :httpc.request(method, request, http_options(timeout), body_format: :binary) do
       {:ok, {{_version, status, _reason}, response_headers, body}} ->
         body = decode_body(response_headers, body)
 
@@ -199,10 +204,10 @@ defmodule Frontier.HTTP do
   @doc false
   def network?, do: Application.get_env(:frontier, :network, true)
 
-  defp http_options do
+  defp http_options(timeout) do
     [
-      timeout: @timeout,
-      connect_timeout: @timeout,
+      timeout: timeout,
+      connect_timeout: timeout,
       autoredirect: false,
       ssl: [
         verify: :verify_peer,

@@ -12,10 +12,21 @@ defmodule Frontier.Jobs.PublishEdition do
   alias Frontier.{Editions, Runs}
 
   @impl Oban.Worker
-  def perform(%Oban.Job{args: args, attempt: attempt, max_attempts: max_attempts}) do
-    day = Frontier.Jobs.day(args)
+  def perform(%Oban.Job{attempt: attempt, max_attempts: max_attempts} = job) do
+    day = Frontier.Jobs.scheduled_day(job)
     run = Runs.start("publish", day)
 
+    if Editions.get(day) != nil and not Runs.successful?(day, "daily") do
+      reason = :no_successful_morning_run
+      Runs.fail(run, reason)
+      Frontier.Jobs.Notify.failed("The 06:00 edition is late", day, reason, attempt, max_attempts)
+      {:error, reason}
+    else
+      publish(day, run, attempt, max_attempts)
+    end
+  end
+
+  defp publish(day, run, attempt, max_attempts) do
     case Editions.publish(day) do
       {:ok, edition} ->
         Runs.finish(run, inserted: edition.story_count, model: nil)

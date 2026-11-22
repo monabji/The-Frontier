@@ -1,0 +1,47 @@
+<div class="sheet reader-sheet">
+  <header class="masthead">
+    <p class="flagline">
+      <span class="smallcaps">Restore</span>
+      <span class="smallcaps">Your paper</span>
+    </p>
+    <h1 class="masthead__wordmark"><a href="/">The Frontier</a></h1>
+    <p class="masthead__motto">A link is a key. Open it where the paper should live.</p>
+  </header>
+
+  <main class="page">
+    <h2 class="section-band">
+      <span class="smallcaps">This link</span>
+      <span class="smallcaps section-band__kicker">Confirm</span>
+    </h2>
+
+    <p :if={@error} class="reader-error">{@error}</p>
+
+    <p :if={@matches} class="reader-copy">
+      This browser is already using this paper. <a href="/your-paper">Open your paper</a>.
+    </p>
+
+    <p :if={@existing != nil and not @matches} class="reader-copy">
+      This browser already holds a different paper. Restoring this link here
+      would replace it, so nothing has changed. Use a private window, or
+      <a href="/your-paper">forget the current reader</a>
+      first.
+    </p>
+
+    <p :if={@existing == nil} class="reader-copy">
+      Opening this link restores the profile it belongs to in this browser.
+      Anyone who has the link can restore it and then read and change it, so keep
+      it to yourself.
+    </p>
+
+    <form :if={@existing == nil} method="post" action={"/recover/" <> @token} class="onboard">
+      <input type="hidden" name="_csrf_token" value={@csrf_token} />
+      <button class="button" type="submit">Restore this paper</button>
+    </form>
+
+    <p class="fineprint">
+      <a href="/">Read today's paper</a> · <a href="/privacy">What is stored</a>
+    </p>
+  </main>
+
+  <PaperComponents.colophon />
+</div>

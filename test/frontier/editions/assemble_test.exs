@@ -161,6 +161,27 @@ defmodule Frontier.Editions.AssembleTest do
       assert artifact.stats["stories"] == 2
     end
 
+    test "a published edition cannot be assembled over, unless republishing", %{stories: stories} do
+      {:ok, _} = Editions.save_draft(@day, plan(stories))
+      {:ok, published} = Editions.publish(@day)
+
+      assert {:error, :edition_is_published} = Editions.assemble(@day)
+      assert Store.read(@day).hash == published.artifact_hash
+
+      assert {:ok, %{artifact: artifact}} = Editions.assemble(@day, republish: true)
+      assert artifact.hash == published.artifact_hash
+    end
+
+    test "a published edition rebuilds a missing artifact instead of lying", %{stories: stories} do
+      {:ok, _} = Editions.save_draft(@day, plan(stories))
+      {:ok, published} = Editions.publish(@day)
+      File.rm_rf!(Store.day_dir(@day))
+
+      assert {:ok, rebuilt} = Editions.publish(@day)
+      assert rebuilt.artifact_hash == published.artifact_hash
+      assert Store.read(@day).hash == published.artifact_hash
+    end
+
     test "publishing twice does not move the edition", %{stories: stories} do
       {:ok, _} = Editions.save_draft(@day, plan(stories))
       {:ok, first} = Editions.publish(@day)

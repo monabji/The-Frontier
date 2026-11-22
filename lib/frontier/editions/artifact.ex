@@ -16,6 +16,8 @@ defmodule Frontier.Editions.Artifact do
   alias Frontier.Editions.{Edition, Entry}
   alias Frontier.Editor.Sections
 
+  # Bump this when the stored HTML template changes: the hash covers the
+  # paper's content, so a schema bump is how an old snapshot is invalidated.
   @schema 1
 
   defstruct [

@@ -23,7 +23,8 @@ defmodule FrontierWeb.PageController do
   @doc "A dated edition: `/2026/11/22`."
   def show(conn, %{"year" => year, "month" => month, "day" => day}) do
     with {:ok, date} <- date(year, month, day),
-         artifact when not is_nil(artifact) <- Editions.artifact(date) do
+         artifact when not is_nil(artifact) <- Editions.artifact(date),
+         true <- artifact.status in ["published", "late", "frozen"] do
       render_artifact(conn, artifact, false)
     else
       _ -> not_found(conn)

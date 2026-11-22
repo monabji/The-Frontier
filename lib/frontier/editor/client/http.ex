@@ -18,7 +18,7 @@ defmodule Frontier.Editor.Client.HTTP do
 
     with {:ok, api_key} <- api_key(config),
          {:ok, body} <- post_body(messages, config, opts),
-         {:ok, decoded} <- post(config, api_key, body),
+         {:ok, decoded} <- post(config, api_key, body, opts),
          {:ok, content} <- content(decoded) do
       {:ok,
        %{
@@ -62,6 +62,10 @@ defmodule Frontier.Editor.Client.HTTP do
 
   def content(decoded), do: {:error, {:unexpected_completion, decoded}}
 
+  @doc "The per-request timeout for a completion."
+  @spec timeout(keyword()) :: pos_integer()
+  def timeout(opts \\ []), do: Keyword.get(opts, :timeout, config()[:timeout] || 180_000)
+
   defp config do
     Application.get_env(:frontier, __MODULE__, [])
   end
@@ -75,7 +79,7 @@ defmodule Frontier.Editor.Client.HTTP do
     end
   end
 
-  defp post(config, api_key, body) do
+  defp post(config, api_key, body, opts) do
     url =
       String.trim_trailing(config[:base_url] || "https://api.openai.com/v1", "/") <>
         "/chat/completions"
@@ -85,7 +89,10 @@ defmodule Frontier.Editor.Client.HTTP do
       {"content-type", "application/json"}
     ]
 
-    case Frontier.HTTP.post(url, Jason.encode!(body), headers) do
+    http = Keyword.get(opts, :http, &Frontier.HTTP.post/4)
+    timeout = Keyword.get(opts, :timeout, config[:timeout] || 180_000)
+
+    case http.(url, Jason.encode!(body), headers, timeout: timeout) do
       {:ok, %{status: status, body: response_body}} when status in 200..299 ->
         case Jason.decode(response_body) do
           {:ok, decoded} -> {:ok, decoded}

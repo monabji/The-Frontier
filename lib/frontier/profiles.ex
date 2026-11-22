@@ -15,6 +15,7 @@ defmodule Frontier.Profiles do
   import Ecto.Query
 
   alias Frontier.Clock
+  alias Frontier.Sources.Canonical
   alias Frontier.Profiles.{Chips, Event, Profile}
   alias Frontier.Readers
   alias Frontier.Readers.Reader
@@ -95,11 +96,13 @@ defmodule Frontier.Profiles do
   @spec thumb(Reader.t(), String.t(), Date.t() | nil, String.t()) ::
           {:ok, Profile.t()} | {:error, term()}
   def thumb(%Reader{} = reader, story, edition_day, value) when value in ["up", "down"] do
-    if is_binary(story) and String.trim(story) != "" do
+    target = Canonical.normalize(story)
+
+    if is_binary(target) and String.length(target) <= 2048 do
       apply_events(reader, [
         %{
           kind: "thumb_" <> value,
-          target: String.trim(story),
+          target: target,
           value: value,
           edition_day: edition_day
         }
@@ -166,7 +169,7 @@ defmodule Frontier.Profiles do
     :ok
   end
 
-  defp apply_events(%Reader{} = reader, events) do
+  defp apply_events(%Reader{} = reader, events, attempt \\ 1) do
     now = Clock.now()
 
     Repo.transaction(fn ->
@@ -200,6 +203,15 @@ defmodule Frontier.Profiles do
 
       profile
     end)
+  rescue
+    exception in Ecto.ConstraintError ->
+      # Two saves can derive the same next version; the unique index refuses
+      # one. Retry once against the committed latest version instead of 500ing.
+      if attempt < 2 do
+        apply_events(reader, events, attempt + 1)
+      else
+        {:error, exception}
+      end
   end
 
   defp apply_event(%{kind: "chip", target: chip}, document) when is_binary(chip) do
@@ -241,15 +253,21 @@ defmodule Frontier.Profiles do
 
   defp put_thumb(document, story, value, _attrs) do
     thumbs = document |> Map.get("thumbs", %{}) |> Map.put(story, value)
-
-    counts =
-      document
-      |> Map.get("thumb_counts", %{"up" => 0, "down" => 0})
-      |> Map.update(value, 1, &(&1 + 1))
+    counts = thumb_counts(thumbs)
 
     document
     |> Map.put("thumbs", thumbs)
     |> Map.put("thumb_counts", counts)
+  end
+
+  # The counts describe the current map, not the number of clicks: a story
+  # thumbed up and then down is one "down", and the event log keeps both
+  # statements for the history.
+  defp thumb_counts(thumbs) do
+    thumbs
+    |> Map.values()
+    |> Enum.frequencies()
+    |> Map.merge(%{"up" => 0, "down" => 0}, fn _key, actual, _default -> actual end)
   end
 
   defp event(kind, target, value), do: %{kind: kind, target: target, value: value}

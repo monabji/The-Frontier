@@ -48,7 +48,7 @@ defmodule Frontier.AlertsTest do
         Webhook.telegram_payload("12345", "The 06:00 edition is late", "No draft was written.")
 
       assert payload.chat_id == "12345"
-      assert payload.parse_mode == "HTML"
+      refute Map.has_key?(payload, :parse_mode)
       assert payload.text =~ "The 06:00 edition is late"
       assert payload.text =~ "No draft was written."
     end

@@ -89,6 +89,14 @@ defmodule FrontierWeb.ArtifactPageTest do
       assert get(build_conn(), "/2026/11/23") |> response(404) =~ "No edition"
     end
 
+    test "a dated URL refuses an unpublished draft", %{conn: conn, day: day} do
+      draft_day = Date.add(day, -1)
+      write_artifact(draft_day, "draft", "Not published yet.")
+
+      assert get(conn, edition_path(draft_day)) |> response(404) =~ "No edition"
+      assert get(conn, ~p"/") |> html_response(200) =~ "Quokka1 Zephyr1 opens a bakery"
+    end
+
     test "the page still prints with its database rows gone", %{conn: conn, day: day} do
       Repo.delete_all(from(entry in Frontier.Editions.Entry))
       Repo.delete_all(from(edition in Edition))

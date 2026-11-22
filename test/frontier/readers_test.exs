@@ -44,6 +44,27 @@ defmodule Frontier.ReadersTest do
     end
   end
 
+  describe "the cookie flags" do
+    test "honours the secure flag used in production" do
+      previous = Application.get_env(:frontier, :secure_cookies)
+      Application.put_env(:frontier, :secure_cookies, true)
+
+      on_exit(fn ->
+        if previous do
+          Application.put_env(:frontier, :secure_cookies, previous)
+        else
+          Application.delete_env(:frontier, :secure_cookies)
+        end
+      end)
+
+      conn = Readers.put_cookie(Plug.Test.conn(:get, "/"), Readers.new_id())
+
+      assert conn.resp_cookies[Readers.cookie_name()].secure
+      assert conn.resp_cookies[Readers.cookie_name()].http_only
+      assert conn.resp_cookies[Readers.cookie_name()].same_site == "Lax"
+    end
+  end
+
   describe "the reader row" do
     test "is created on first save and kept on the next" do
       id = Readers.new_id()

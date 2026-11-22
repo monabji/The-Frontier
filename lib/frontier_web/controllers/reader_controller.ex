@@ -77,14 +77,38 @@ defmodule FrontierWeb.ReaderController do
   def recover(conn, %{"token" => token}) do
     case Readers.verify_recovery(token) do
       {:ok, public_id} ->
-        conn
-        |> Readers.put_cookie(public_id)
-        |> redirect(to: ~p"/your-paper")
+        render_recovery(conn, token, public_id, existing_reader(conn), nil)
 
       {:error, _reason} ->
-        conn
-        |> put_status(:not_found)
-        |> text("That recovery link is not valid.")
+        not_found_recovery(conn)
+    end
+  end
+
+  def restore(conn, %{"token" => token}) do
+    case Readers.verify_recovery(token) do
+      {:ok, public_id} ->
+        case existing_reader(conn) do
+          nil ->
+            conn
+            |> Readers.put_cookie(public_id)
+            |> redirect(to: ~p"/your-paper")
+
+          %{public_id: ^public_id} ->
+            redirect(conn, to: ~p"/your-paper")
+
+          other ->
+            conn
+            |> put_status(:conflict)
+            |> render_recovery(
+              token,
+              public_id,
+              other,
+              "This browser already holds a different paper. Use a private window, or forget the current reader first."
+            )
+        end
+
+      {:error, _reason} ->
+        not_found_recovery(conn)
     end
   end
 
@@ -125,6 +149,32 @@ defmodule FrontierWeb.ReaderController do
     conn
     |> put_status(:unprocessable_entity)
     |> text("That thumb could not be saved.")
+  end
+
+  defp existing_reader(conn) do
+    case Readers.read_cookie(conn) do
+      {:ok, public_id} -> Readers.get(public_id)
+      :none -> nil
+    end
+  end
+
+  defp render_recovery(conn, token, public_id, existing, error) do
+    conn
+    |> assign(:page_title, "Restore your paper — The Frontier")
+    |> render(:recover,
+      token: token,
+      public_id: public_id,
+      existing: existing,
+      matches: existing != nil and existing.public_id == public_id,
+      csrf_token: get_csrf_token(),
+      error: error
+    )
+  end
+
+  defp not_found_recovery(conn) do
+    conn
+    |> put_status(:not_found)
+    |> text("That recovery link is not valid.")
   end
 
   defp summary_for(public_id) do

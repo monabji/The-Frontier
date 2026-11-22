@@ -260,6 +260,17 @@ defmodule Frontier.EditorTest do
     end
   end
 
+  describe "the desk note" do
+    test "an out-of-budget desk note is not printed", %{candidates: candidates} do
+      payload = EditorFixtures.payload(candidates) |> Map.put("desk_note", "Too short.")
+
+      assert {:error, {:desk_note_invalid, :too_short}} =
+               edit(candidates, fn _m, _o -> reply(payload) end)
+
+      assert Editions.get(@day) == nil
+    end
+  end
+
   describe "failures" do
     test "an API failure records a failed run and prints nothing", %{candidates: candidates} do
       assert {:error, {:editor_client, :timeout}} =

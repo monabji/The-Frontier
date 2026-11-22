@@ -26,7 +26,7 @@ defmodule Frontier.Alerts.Webhook do
 
   @doc false
   def telegram_payload(chat_id, title, body) do
-    %{chat_id: chat_id, text: "#{title}\n\n#{body}", parse_mode: "HTML"}
+    %{chat_id: chat_id, text: "#{title}\n\n#{body}"}
   end
 
   defp target do

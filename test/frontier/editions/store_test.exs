@@ -111,6 +111,20 @@ defmodule Frontier.Editions.StoreTest do
       assert {:error, :no_artifact} = Store.freeze(@day)
     end
 
+    test "a frozen day reads the hash in its marker even if current moves" do
+      first = artifact(@day, "The first")
+      second = artifact(@day, "The second")
+
+      {:ok, _} = Store.write(first, "first")
+      {:ok, _} = Store.write(second, "second")
+      :ok = Store.freeze(@day)
+
+      File.write!(Path.join(Store.day_dir(@day), "current"), first.hash <> "\n")
+
+      assert Store.read(@day).hash == second.hash
+      assert {:ok, "second"} = Store.html(@day)
+    end
+
     test "the frozen marker names the hash it froze" do
       artifact = artifact()
       {:ok, _} = Store.write(artifact, "html")
