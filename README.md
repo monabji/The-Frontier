@@ -1,6 +1,6 @@
 # The Frontier
 
-The daily tech e-newspaper. One dated edition at 06:00 IST.
+The daily tech e-newspaper. One dated edition everyday at 06:00 IST.
 
 ![The Frontier front page in Broadsheet layout](assets/screenshot.png)
 
