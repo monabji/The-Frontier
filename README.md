@@ -1,10 +1,16 @@
-
-
 # The Frontier
 
-The daily tech e-newspaper. One dated edition at 06:00 IST. 
+The daily tech e-newspaper. One dated edition at 06:00 IST.
 
 ![The Frontier front page in Broadsheet layout](assets/screenshot.png)
+
+## Tech stack
+
+- Elixir and Phoenix render HTML with HEEx templates.
+- SQLite holds the data through Ecto.
+- Oban runs the daily pipeline.
+- Editions are stored as JSON and HTML files, so a printed day renders without the database.
+- Newsreader and Fraunces are self-hosted.
 
 ## Run it
 
@@ -15,8 +21,6 @@ mix phx.server
 ```
 
 Open http://localhost:4000.
-
-
 
 ## Done
 
