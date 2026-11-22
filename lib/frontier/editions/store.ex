@@ -124,14 +124,12 @@ defmodule Frontier.Editions.Store do
   @doc "Freezes the current version of a day; it can never be written again."
   @spec freeze(Date.t()) :: :ok | {:error, term()}
   def freeze(%Date{} = day) do
-    case current_hash(day) do
-      nil ->
-        {:error, :no_artifact}
-
-      hash ->
-        File.write!(Path.join(day_dir(day), "frozen"), hash <> "\n")
-        :ok
-    end
+    with_day_lock(day, fn ->
+      case current_hash(day) do
+        nil -> {:error, :no_artifact}
+        hash -> write_pointer(Path.join(day_dir(day), "frozen"), hash)
+      end
+    end)
   end
 
   @doc "Whether a day has been frozen."

@@ -26,8 +26,17 @@ defmodule Frontier.Readers.Reader do
   @doc false
   def changeset(reader, attrs) do
     reader
-    |> cast(attrs, @fields)
+    |> cast(attrs, [:first_seen_at, :last_seen_at])
+    |> put_public_id(reader, attrs)
     |> validate_required(@fields)
     |> unique_constraint(:public_id)
   end
+
+  # The public id identifies the reader; it is set once, on creation, and is
+  # never accepted from a params map on an update.
+  defp put_public_id(changeset, %{id: nil}, attrs) do
+    put_change(changeset, :public_id, attrs[:public_id] || attrs["public_id"])
+  end
+
+  defp put_public_id(changeset, _reader, _attrs), do: changeset
 end

@@ -45,6 +45,10 @@ defmodule Frontier.JobsTest do
 
   defp draft!(day) do
     morning_ok!(day)
+    draft_without_morning!(day)
+  end
+
+  defp draft_without_morning!(day) do
     items = ClusteringFixtures.seed!(day)
     Pool.rebuild(day, items: items)
     [story] = Pool.list_stories(day: day)
@@ -146,6 +150,14 @@ defmodule Frontier.JobsTest do
       assert Enum.any?(runs, &(&1.status == "error" and &1.error =~ "no_successful"))
       assert List.last(runs).status == "ok"
       assert List.last(runs).inserted == 1
+    end
+
+    test "an already published edition is not a false alarm on a retry", %{} do
+      :ok = draft_without_morning!(@day)
+      {:ok, _} = Editions.publish(@day)
+
+      assert :ok = PublishEdition.perform(job(@day))
+      refute_received {:alert, _level, _title, _body}
     end
   end
 

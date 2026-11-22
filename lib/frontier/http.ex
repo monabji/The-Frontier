@@ -207,7 +207,9 @@ defmodule Frontier.HTTP do
   defp http_options(timeout) do
     [
       timeout: timeout,
-      connect_timeout: timeout,
+      # Connecting is not generating: a dead host must not eat the whole
+      # model budget.
+      connect_timeout: min(timeout, @timeout),
       autoredirect: false,
       ssl: [
         verify: :verify_peer,

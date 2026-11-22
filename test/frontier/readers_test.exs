@@ -2,6 +2,7 @@ defmodule Frontier.ReadersTest do
   use Frontier.DataCase, async: false
 
   alias Frontier.Readers
+  alias Frontier.Readers.Reader
 
   describe "the anonymous id" do
     test "is random and unguessable" do
@@ -77,6 +78,14 @@ defmodule Frontier.ReadersTest do
       second = Readers.ensure(id)
       assert second.id == first.id
       assert second.first_seen_at == first.first_seen_at
+    end
+
+    test "a public id cannot be changed by an update" do
+      reader = Readers.ensure(Readers.new_id())
+
+      changeset = Reader.changeset(reader, %{public_id: "changed-to-someone-else"})
+
+      refute Ecto.Changeset.get_change(changeset, :public_id)
     end
 
     test "touching records a later last-seen without touching the profile" do

@@ -16,13 +16,31 @@ defmodule Frontier.Jobs.PublishEdition do
     day = Frontier.Jobs.scheduled_day(job)
     run = Runs.start("publish", day)
 
-    if Editions.get(day) != nil and not Runs.successful?(day, "daily") do
-      reason = :no_successful_morning_run
-      Runs.fail(run, reason)
-      Frontier.Jobs.Notify.failed("The 06:00 edition is late", day, reason, attempt, max_attempts)
-      {:error, reason}
-    else
-      publish(day, run, attempt, max_attempts)
+    edition = Editions.get(day)
+
+    cond do
+      edition == nil ->
+        publish(day, run, attempt, max_attempts)
+
+      edition.status in ["published", "late", "frozen"] ->
+        publish(day, run, attempt, max_attempts)
+
+      not Runs.successful?(day, "daily") ->
+        reason = :no_successful_morning_run
+        Runs.fail(run, reason)
+
+        Frontier.Jobs.Notify.failed(
+          "The 06:00 edition is late",
+          day,
+          reason,
+          attempt,
+          max_attempts
+        )
+
+        {:error, reason}
+
+      true ->
+        publish(day, run, attempt, max_attempts)
     end
   end
 
