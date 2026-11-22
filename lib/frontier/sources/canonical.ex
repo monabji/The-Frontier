@@ -83,6 +83,22 @@ defmodule Frontier.Sources.Canonical do
   def normalize(_url), do: nil
 
   @doc """
+  The host a reader sees in a source line, without a leading `www.`.
+
+      iex> Frontier.Sources.Canonical.host("https://www.example.com/a")
+      "example.com"
+  """
+  @spec host(String.t() | nil) :: String.t()
+  def host(url) when is_binary(url) do
+    case URI.parse(url) do
+      %URI{host: host} when is_binary(host) -> String.replace_prefix(host, "www.", "")
+      _ -> ""
+    end
+  end
+
+  def host(_url), do: ""
+
+  @doc """
   A digest of what the item says, independent of where it lives.
 
   Title plus body text, whitespace collapsed and lowercased: the same article

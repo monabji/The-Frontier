@@ -59,4 +59,22 @@ defmodule Frontier.Newsroom.Story do
     |> unique_constraint([:edition_day, :cluster_key])
     |> unique_constraint([:edition_day, :canonical_url])
   end
+
+  @doc """
+  The membership whose link the paper prints: the publication, not the
+  aggregator. Falls back to the first member so a story is never linkless.
+  """
+  @spec primary_item(t()) :: Frontier.Newsroom.StoryItem.t() | nil
+  def primary_item(%__MODULE__{story_items: items}) do
+    Enum.find(items, &(&1.role == "primary")) || List.first(items)
+  end
+
+  @doc "The raw item behind the printed link, when it is loaded."
+  @spec primary_raw_item(t()) :: Frontier.Sources.RawItem.t() | nil
+  def primary_raw_item(%__MODULE__{} = story) do
+    case primary_item(story) do
+      nil -> nil
+      item -> Map.get(item, :raw_item)
+    end
+  end
 end

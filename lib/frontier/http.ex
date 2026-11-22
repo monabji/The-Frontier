@@ -48,6 +48,30 @@ defmodule Frontier.HTTP do
     end
   end
 
+  @doc """
+  POSTs a body and returns the response without interpreting it. Used by the
+  editor's model client; redirects are not followed because a POST that
+  redirects is a misconfigured endpoint, not a moved article.
+  """
+  @spec post(String.t(), binary(), [{String.t(), String.t()}]) ::
+          {:ok, response()} | {:error, term()}
+  def post(url, body, headers) when is_binary(url) and is_binary(body) do
+    if network?() do
+      case request(:post, url, body, headers) do
+        {:ok, %{status: status} = response} when status in 200..299 ->
+          {:ok, response}
+
+        {:ok, %{status: status} = response} ->
+          {:error, {:http_status, status, excerpt(response.body)}}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    else
+      {:error, :network_disabled}
+    end
+  end
+
   @doc "GETs a URL and returns its body as text, whatever it is."
   @spec get_xml(String.t()) :: {:ok, response()} | {:error, term()}
   def get_xml(url), do: get(url)
@@ -88,12 +112,24 @@ defmodule Frontier.HTTP do
   end
 
   defp request(method, url) do
-    headers = [
-      {~c"user-agent", String.to_charlist(@user_agent)},
-      {~c"accept-encoding", ~c"gzip"}
-    ]
+    request(method, url, nil, [])
+  end
 
-    request = {String.to_charlist(url), headers}
+  defp request(method, url, body, extra_headers) do
+    headers =
+      [
+        {~c"user-agent", String.to_charlist(@user_agent)},
+        {~c"accept-encoding", ~c"gzip"}
+      ] ++
+        Enum.map(extra_headers, fn {key, value} ->
+          {String.to_charlist(key), String.to_charlist(value)}
+        end)
+
+    request =
+      case body do
+        nil -> {String.to_charlist(url), headers}
+        body -> {String.to_charlist(url), headers, ~c"application/json", body}
+      end
 
     case :httpc.request(method, request, http_options(), body_format: :binary) do
       {:ok, {{_version, status, _reason}, response_headers, body}} ->

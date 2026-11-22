@@ -23,6 +23,34 @@ end
 config :frontier, FrontierWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+# The editor's provider, from the environment. Any endpoint that speaks the
+# OpenAI chat-completions shape works; a missing key makes the run fail, never
+# fall back to a canned paper.
+parse_price = fn name, default ->
+  case System.get_env(name) do
+    nil ->
+      default
+
+    value ->
+      case Float.parse(value) do
+        {price, _rest} -> price
+        :error -> default
+      end
+  end
+end
+
+config :frontier, Frontier.Editor.Client.HTTP,
+  base_url: System.get_env("FRONTIER_LLM_BASE_URL", "https://api.openai.com/v1"),
+  model: System.get_env("FRONTIER_LLM_MODEL", "gpt-4o-mini"),
+  api_key: System.get_env("FRONTIER_LLM_API_KEY") || System.get_env("OPENAI_API_KEY"),
+  temperature: 0.4,
+  max_tokens: 8_000
+
+config :frontier, :editor_pricing, %{
+  input_per_million: parse_price.("FRONTIER_LLM_INPUT_PRICE", 0.15),
+  output_per_million: parse_price.("FRONTIER_LLM_OUTPUT_PRICE", 0.60)
+}
+
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
   config :frontier, FrontierWeb.Endpoint,

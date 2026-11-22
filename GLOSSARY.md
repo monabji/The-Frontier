@@ -29,7 +29,11 @@ Vocabulary used across the codebase, issues and docs. When a term here competes 
 ## The editor
 
 - **The editor** — the LLM pipeline stage that ranks the pool, assigns sections, writes headlines, summaries and the desk note, and picks quotes. It never invents facts; every claim traces to a source or a quote.
-- **Grounding check** — mechanical validation: quote is a substring of source text, link resolves, entities appear in the source, word budgets respected. Failures send the story back, not to print.
+- **Candidate** — a pool story the editor may choose, carrying its primary link, provenance and enough source text to quote. A story whose text cannot be read is not a candidate.
+- **Edition plan** — the validated placement of the editor's reply: sections, caps, positions and the lead. The model proposes; the plan decides.
+- **Grounding check** — mechanical validation: quote is a substring of source text, link resolves, entities appear in the source, word budgets respected. Failures send the story back once, not to print. See ADR 0006.
+- **Drop log** — `editor_rejections`: every story the editor chose that did not print, with the reason grounding gave. Dropping is recorded, never silent.
+- **Read time** — the edition's advertised length, estimated from its word count at newspaper speed (220 words a minute, minimum one).
 - **Run** — one execution of a pipeline stage for a day, recorded with timing, cost and errors.
 
 ## Readers

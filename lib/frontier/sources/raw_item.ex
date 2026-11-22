@@ -76,10 +76,5 @@ defmodule Frontier.Sources.RawItem do
   The host a reader sees in the source line, without a leading `www.`.
   """
   @spec host(t()) :: String.t()
-  def host(%__MODULE__{url: url}) do
-    case URI.parse(url) do
-      %URI{host: host} when is_binary(host) -> String.replace_prefix(host, "www.", "")
-      _ -> ""
-    end
-  end
+  def host(%__MODULE__{url: url}), do: Frontier.Sources.Canonical.host(url)
 end

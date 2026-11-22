@@ -27,6 +27,10 @@ defmodule Frontier.Sources.Run do
     field :skipped, :integer, default: 0
     field :duration_ms, :integer
     field :error, :string
+    field :model, :string
+    field :input_tokens, :integer, default: 0
+    field :output_tokens, :integer, default: 0
+    field :cost_micros, :integer, default: 0
 
     timestamps(type: :utc_datetime)
   end
@@ -42,6 +46,10 @@ defmodule Frontier.Sources.Run do
     :skipped,
     :duration_ms,
     :error,
+    :model,
+    :input_tokens,
+    :output_tokens,
+    :cost_micros,
     :inserted_at
   ]
 

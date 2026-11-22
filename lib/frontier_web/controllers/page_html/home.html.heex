@@ -1,12 +1,16 @@
 <div class="sheet">
-  <PaperComponents.masthead date={@date} />
+  <PaperComponents.masthead date={@date} read_minutes={@edition && @edition.read_minutes} />
 
   <main class="page">
-    <PaperComponents.section_band
-      section="Front Page"
-      kicker={kicker(@stories)}
+    <PaperComponents.edition
+      :if={@edition}
+      edition={@edition}
+      sections={@sections}
+      tickers={@tickers}
     />
-    <PaperComponents.front_page stories={@stories} />
+
+    <PaperComponents.section_band :if={!@edition} section="Front Page" kicker={kicker(@stories)} />
+    <PaperComponents.front_page :if={!@edition} stories={@stories} />
   </main>
 
   <PaperComponents.colophon />

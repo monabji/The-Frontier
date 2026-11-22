@@ -8,7 +8,7 @@ defmodule FrontierWeb.PaperComponents do
   use FrontierWeb, :html
 
   alias Frontier.Newsroom.Dateline
-  alias Frontier.Sources.RawItem
+  alias Frontier.Sources.{Canonical, RawItem}
 
   @doc """
   The masthead: edition flag, wordmark, motto and the date line.
@@ -17,13 +17,16 @@ defmodule FrontierWeb.PaperComponents do
   below it is a section of the same page.
   """
   attr :date, Date, required: true, doc: "the edition date, in IST"
+  attr :read_minutes, :integer, default: nil, doc: "the edition's advertised length"
 
   def masthead(assigns) do
     ~H"""
     <header class="masthead">
       <p class="flagline">
         <span class="smallcaps">Daily edition</span>
-        <span class="smallcaps">Morning, 06:00 IST</span>
+        <span class="smallcaps">
+          Morning, 06:00 IST<span :if={@read_minutes}> · {@read_minutes} min read</span>
+        </span>
       </p>
 
       <h1 class="masthead__wordmark"><a href={~p"/"}>The Frontier</a></h1>
@@ -34,6 +37,100 @@ defmodule FrontierWeb.PaperComponents do
         <time datetime={Date.to_iso8601(@date)}>{Dateline.format(@date)}</time>
       </p>
     </header>
+    """
+  end
+
+  @doc """
+  A dated edition: the desk note, every section in paper order, and the Also
+  Today strip. This is the page phase 4 makes; phase 5 renders it from an
+  artifact instead of the database.
+  """
+  attr :edition, :any, required: true
+  attr :sections, :list, required: true
+  attr :tickers, :list, required: true
+
+  def edition(assigns) do
+    ~H"""
+    <.desk_note :if={@edition.desk_note} note={@edition.desk_note} />
+
+    <section :for={{section, entries} <- @sections} class="section">
+      <.section_band section={section} kicker={entry_count(entries)} />
+
+      <article :for={entry <- entries} class={"story story--#{entry.kind}"}>
+        <h3 class="story__headline">
+          <a href={entry.url} rel="noopener noreferrer">{entry.headline}</a>
+        </h3>
+        <p :if={entry.dek} class="story__dek">{entry.dek}</p>
+        <p class="story__summary">{entry.summary}</p>
+        <blockquote :if={entry.quote} class="story__quote">
+          <p>{entry.quote}</p>
+          <cite class="smallcaps">{entry.source_label || Canonical.host(entry.url)}</cite>
+        </blockquote>
+        <.entry_source entry={entry} />
+      </article>
+    </section>
+
+    <section :if={@tickers != []} class="section also-today">
+      <.section_band section="Also Today" kicker={entry_count(@tickers)} />
+
+      <ol class="ticker">
+        <li :for={entry <- @tickers} class="ticker__item">
+          <p class="ticker__headline">
+            <a href={entry.url} rel="noopener noreferrer">{entry.headline}</a>
+          </p>
+          <p class="ticker__line">{entry.summary}</p>
+          <.entry_source entry={entry} />
+        </li>
+      </ol>
+    </section>
+    """
+  end
+
+  @doc """
+  The desk note that opens the paper. It is machine-written and says so: the
+  reader is never invited to mistake the editor's voice for a person's.
+  """
+  attr :note, :string, required: true
+
+  def desk_note(assigns) do
+    ~H"""
+    <aside class="desk-note">
+      <p class="smallcaps desk-note__label">
+        From the desk <span class="desk-note__machine">machine-written</span>
+      </p>
+      <p class="desk-note__text">{@note}</p>
+    </aside>
+    """
+  end
+
+  @doc """
+  The source line under an edition entry: where it was published, when in IST,
+  its score, and the discussion — a link to the argument, not to the article
+  again.
+  """
+  attr :entry, :any, required: true
+
+  def entry_source(assigns) do
+    ~H"""
+    <p class="item-source">
+      <span class="smallcaps item-source__host">{Canonical.host(@entry.url)}</span>
+      <span class="item-source__meta">
+        <time :if={@entry.published_at} datetime={DateTime.to_iso8601(@entry.published_at)}>
+          {Dateline.format_short(@entry.published_at)}
+        </time>
+        <span :if={@entry.score && @entry.score > 0}>
+          {pluralize(@entry.score, "point")}
+        </span>
+        <a
+          :if={@entry.discussion_url}
+          class="item-source__discussion"
+          href={@entry.discussion_url}
+          rel="noopener noreferrer"
+        >
+          {discussion_label(@entry)}
+        </a>
+      </span>
+    </p>
     """
   end
 
@@ -176,6 +273,16 @@ defmodule FrontierWeb.PaperComponents do
     do: pluralize(count, "comment")
 
   defp discussion_label(_item), do: "Discussion"
+
+  defp entry_count(entries) do
+    count = length(entries)
+
+    cond do
+      Enum.any?(entries, &(&1.kind == "ticker")) -> pluralize(count, "item")
+      count == 1 -> "1 story"
+      true -> "#{count} stories"
+    end
+  end
 
   defp pluralize(1, noun), do: "1 #{noun}"
   defp pluralize(count, noun), do: "#{thousands(count)} #{noun}s"

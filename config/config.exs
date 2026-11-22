@@ -52,6 +52,21 @@ config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
+# The editor: one OpenAI-compatible endpoint, named in configuration so the
+# paper is not tied to a vendor. A run without a key fails loudly; it never
+# falls back to a canned edition.
+config :frontier, :editor_client, Frontier.Editor.Client.HTTP
+
+config :frontier, Frontier.Editor.Client.HTTP,
+  base_url: "https://api.openai.com/v1",
+  model: "gpt-4o-mini",
+  temperature: 0.4,
+  max_tokens: 8_000
+
+# Dollars per million tokens. The run records micro-dollars from these; change
+# them when a provider changes its price rather than editing code.
+config :frontier, :editor_pricing, %{input_per_million: 0.15, output_per_million: 0.60}
+
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
