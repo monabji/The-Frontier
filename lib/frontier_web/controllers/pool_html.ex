@@ -8,6 +8,12 @@ defmodule FrontierWeb.PoolHTML do
 
   defp item_count(stories), do: stories |> Enum.map(& &1.item_count) |> Enum.sum()
 
+  defp items(1), do: "1 item"
+  defp items(count), do: "#{count} items"
+
+  defp sources(1), do: "1 source"
+  defp sources(count), do: "#{count} sources"
+
   # The publication leads, then the conversation, then the repeats: the same
   # order the cluster put them in, restored after the database round trip.
   defp items_in_order(story) do
